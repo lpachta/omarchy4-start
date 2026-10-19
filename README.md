@@ -2,48 +2,72 @@
 
 Personal setup script for a fresh Omarchy installation.
 
-Based on the checklist in `Omarchy Quattro Start.md`.
+Based on the checklists in `Omarchy Quattro Start.md` and `~/Documents/omarchy-start.md`.
 
 ## Usage
 
 ```bash
-# Run the setup
+# Interactive: confirm every change with the Omarchy-style gum prompt
 ./omarchy4-setup.sh
+
+# Unattended: answer yes to everything (the original behavior)
+./omarchy4-setup.sh --noconfirm
 
 # Preview without making changes
 DRY_RUN=true ./omarchy4-setup.sh
 ```
+
+Each change is confirmable the Omarchy way: the script uses `gum confirm`
+(themed by the active Omarchy theme) and skips any step you decline. With
+`--noconfirm` (or `DRY_RUN=true`) it runs straight through, and if there is no
+interactive terminal it refuses to make changes unless `--noconfirm` is set.
 
 ## What it does
 
 | # | Task | Method |
 |---|------|--------|
 | 1 | Remove all preinstalled apps | `omarchy remove preinstalls` |
-| 2 | Install browser extensions | Chromium managed policy |
-| 3 | Install web apps | `omarchy webapp install` |
+| 2 | Chromium policies: DuckDuckGo default, extensions, no password manager, smooth scrolling off | Chromium managed policy |
+| 3 | Install web apps (auto-fetched icons) | `omarchy webapp install` |
 | 4 | Install desktop apps | `omarchy pkg add` |
-| 5 | Enable Active Window plugin | `omarchy plugin enable` |
-| 6 | Disable Omarchy menu plugin | `omarchy plugin disable` |
-| 7 | Monitor scaling 1x | `monitors.lua` |
-| 8 | Terminal font size 12 | `foot.ini` |
-| 9 | DuckDuckGo default search | Chromium policy |
-| 10 | SUPER+Q close window | `bindings.lua` |
-| 11 | Remove ufw-docker + docker | `omarchy pkg drop` |
-| 12 | SSH key (ed25519) | `ssh-keygen` + `ssh-add` |
-| 13-16 | Keyboard & touchpad | `input.lua` |
-| 17 | Screensaver off | `omarchy toggle screensaver off` |
-| 18 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
-| 19 | Nvim relative numbers | `init.lua` |
+| 5 | Install `felix-rs` (TUI file manager) | `omarchy pkg add` |
+| 6 | Enable Active Window plugin | `omarchy plugin enable` |
+| 7 | Disable Omarchy menu plugin | `omarchy plugin disable` |
+| 8 | Monitor scaling 1x | `monitors.lua` |
+| 9 | Foot font size 14 | `foot.ini` |
+| 10 | Disable Hyprland animations | `looknfeel.lua` |
+| 11 | SUPER+Q close window | `bindings.lua` |
+| 12 | Remove ufw-docker + docker | `omarchy pkg drop` |
+| 13 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
+| 14 | Keyboard & touchpad | `input.lua` |
+| 15 | Screensaver off | `omarchy toggle screensaver off` |
+| 16 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
+| 17 | Nvim relative line numbers | `init.lua` |
+| 18 | Nvim indentation 8 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
+| 19 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
 | 20 | batctl-tui-bin | `omarchy pkg aur add` |
-| 21 | Gruvbox theme | `omarchy theme set` |
-| 22 | Default agent OpenCode | `omarchy default agent` |
+| 21 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
+| 22 | Fingerprint authentication | `omarchy setup security fingerprint` |
+| 23 | Gruvbox theme | `omarchy theme set` |
+| 24 | Default agent OpenCode | `omarchy default agent` |
+
+The browser extensions force-installed via policy are: Proton Pass, uBlock
+Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.
 
 ## Manual steps after running
 
-1. Open Chromium once so policies apply (DuckDuckGo default + extensions), then sign in to Proton Pass and pin it
-2. Configure bat thresholds: `sudo batctl`
-3. Add SSH key to GitHub:
+When run interactively, the script offers to walk through these one by one
+(opening Chromium, copying the SSH key and opening GitHub, and configuring
+battery thresholds in a floating terminal). With `--noconfirm` they are only
+printed.
+
+1. Open Chromium once so the policies apply (DuckDuckGo default, extensions, no
+   password manager, smooth scrolling off), then sign in to Proton Pass and Dark
+   Reader and pin the extensions
+2. Add your SSH key to GitHub (title: OMARCHY):
    ```
    cat ~/.ssh/id_ed25519.pub
    ```
-   Then go to https://github.com/settings/ssh/new (title: OMARCHY)
+   Then go to https://github.com/settings/ssh/new
+3. Enroll your fingerprint: `omarchy setup security fingerprint`
+4. Configure battery charge thresholds (40-80%): `sudo batctl`
