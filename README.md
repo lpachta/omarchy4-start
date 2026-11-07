@@ -51,6 +51,7 @@ interactive terminal it refuses to make changes unless `--noconfirm` is set.
 | 23 | Gruvbox theme | `omarchy theme set` |
 | 24 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
 | 25 | Default agent OpenCode | `omarchy default agent` |
+| 26 | fzf skips hidden folders except `.config` | `~/.bashrc` |
 
 The browser extensions force-installed via policy are: Proton Pass, uBlock
 Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.

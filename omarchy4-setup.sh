@@ -708,6 +708,37 @@ step_default_agent() {
 }
 
 # ---------------------------------------------------------------------------
+# 26. Configure fzf to skip hidden folders except .config
+# ---------------------------------------------------------------------------
+step_fzf() {
+  info "26. Configure fzf search scope"
+  local rc="$HOME/.bashrc"
+  local marker="# fzf: skip dotted folders (except .config)"
+  [[ -f "$rc" ]] || { skip "$rc missing"; return 0; }
+  if grep -qF "$marker" "$rc"; then
+    skip "fzf search scope already configured"
+    return 0
+  fi
+  confirm "Limit fzf to non-dotted folders, but keep .config?" || { skip "skipped"; return 0; }
+
+  # Ctrl-T asks for files and dirs, Alt-C only dirs. Pruning in the find
+  # expression keeps fzf from descending into hidden directories other than
+  # .config, at any depth. Hidden files themselves are still listed.
+  run cp "$rc" "$rc.bak.$(date +%Y%m%d_%H%M%S)"
+  append_file "$rc" << 'EOF'
+
+# fzf: skip dotted folders (except .config)
+# Applies to bare fzf/`ff`, Ctrl-T (files and dirs) and Alt-C (directories).
+_FZF_ANY_CMD='find . -mindepth 1 \( -type d -name ".*" ! -name ".config" -prune \) -o -print'
+_FZF_DIR_CMD='find . -mindepth 1 -type d \( -name ".*" ! -name ".config" -prune \) -o -type d -print'
+export FZF_DEFAULT_COMMAND="$_FZF_ANY_CMD"
+export FZF_CTRL_T_COMMAND="$_FZF_ANY_CMD"
+export FZF_ALT_C_COMMAND="$_FZF_DIR_CMD"
+EOF
+  ok "fzf search scope configured"
+}
+
+# ---------------------------------------------------------------------------
 # Final: reload Hyprland + restart shell
 # ---------------------------------------------------------------------------
 step_apply() {
@@ -823,6 +854,7 @@ EOF
   step_theme
   step_mise_node
   step_default_agent
+  step_fzf
   step_apply
 
   ok "Setup complete"
