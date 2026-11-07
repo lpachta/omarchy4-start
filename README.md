@@ -29,27 +29,26 @@ interactive terminal it refuses to make changes unless `--noconfirm` is set.
 | 1 | Remove all preinstalled apps | `omarchy remove preinstalls` |
 | 2 | Chromium policies: DuckDuckGo default, extensions, no password manager, smooth scrolling off | Chromium managed policy |
 | 3 | Install web apps (auto-fetched icons) | `omarchy webapp install` |
-| 4 | Install desktop apps | `omarchy pkg add` |
-| 5 | Install `felix-rs` (TUI file manager) | `omarchy pkg add` |
-| 6 | Enable Active Window plugin | `omarchy plugin enable` |
-| 7 | Disable Omarchy menu plugin | `omarchy plugin disable` |
-| 8 | Monitor scaling 1x | `monitors.lua` |
-| 9 | Foot font size 14 | `foot.ini` |
-| 10 | Disable Hyprland animations | `looknfeel.lua` |
-| 11 | SUPER+Q close window | `bindings.lua` |
-| 12 | Remove ufw-docker + docker | `omarchy pkg drop` |
-| 13 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
-| 14 | Keyboard & touchpad | `input.lua` |
-| 15 | Screensaver off | `omarchy toggle screensaver off` |
-| 16 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
-| 17 | Nvim relative line numbers | `init.lua` |
-| 18 | Nvim indentation 8 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
-| 19 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
-| 20 | batctl-tui-bin | `omarchy pkg aur add` |
-| 21 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
-| 22 | Fingerprint authentication | `omarchy setup security fingerprint` |
-| 23 | Gruvbox theme | `omarchy theme set` |
-| 24 | Default agent OpenCode | `omarchy default agent` |
+| 4 | Install desktop apps (incl. `felix-rs` TUI file manager) | `omarchy pkg add` |
+| 5 | Enable Active Window plugin | `omarchy plugin enable` |
+| 6 | Disable Omarchy menu plugin | `omarchy plugin disable` |
+| 7 | Monitor scaling 1x | `monitors.lua` |
+| 8 | Foot font size 14 | `foot.ini` |
+| 9 | Disable Hyprland animations | `looknfeel.lua` |
+| 10 | SUPER+Q close window | `bindings.lua` |
+| 11 | Remove ufw-docker + docker | `omarchy pkg drop` |
+| 12 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
+| 13 | Keyboard & touchpad | `input.lua` |
+| 14 | Screensaver off | `omarchy toggle screensaver off` |
+| 15 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
+| 16 | Nvim relative line numbers | `init.lua` |
+| 17 | Nvim indentation 8 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
+| 18 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
+| 19 | batctl-tui-bin | `omarchy pkg aur add` |
+| 20 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
+| 21 | Fingerprint authentication | `omarchy setup security fingerprint` |
+| 22 | Gruvbox theme | `omarchy theme set` |
+| 23 | Default agent OpenCode | `omarchy default agent` |
 
 The browser extensions force-installed via policy are: Proton Pass, uBlock
 Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.
