@@ -662,10 +662,33 @@ step_theme() {
 }
 
 # ---------------------------------------------------------------------------
-# 23. Set default agent to OpenCode
+# 23. Set a global Node.js version in mise
+# ---------------------------------------------------------------------------
+step_mise_node() {
+  info "23. Set global Node.js version in mise"
+  if ! command -v mise &>/dev/null; then
+    skip "mise not installed"
+    return 0
+  fi
+  # Omarchy declares node as a lazy mise tool, so it gets installed on demand
+  # but no global version is set. The node shim then fails with "No version is
+  # set for shim: node" (OpenCode is npm-backed, so this bites its users too).
+  if mise ls -g node 2>/dev/null | grep -qE '^node[[:space:]]'; then
+    skip "global Node.js version already set"
+    return 0
+  fi
+  confirm "Set a global Node.js version in mise (fixes the node shim)?" || { skip "skipped"; return 0; }
+  # Reuse the newest installed Node (or install the latest if there is none)
+  # and pin it, so a future major release does not silently take over.
+  run mise use -g --pin node
+  ok "global Node.js version set"
+}
+
+# ---------------------------------------------------------------------------
+# 24. Set default agent to OpenCode
 # ---------------------------------------------------------------------------
 step_default_agent() {
-  info "23. Set default agent to OpenCode"
+  info "24. Set default agent to OpenCode"
   confirm "Set the default coding agent to OpenCode?" || { skip "skipped"; return 0; }
   run omarchy default agent opencode
 }
@@ -783,6 +806,7 @@ EOF
   step_remove_dirs
   step_fingerprint
   step_theme
+  step_mise_node
   step_default_agent
   step_apply
 

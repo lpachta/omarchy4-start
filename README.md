@@ -48,7 +48,8 @@ interactive terminal it refuses to make changes unless `--noconfirm` is set.
 | 20 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
 | 21 | Fingerprint authentication | `omarchy setup security fingerprint` |
 | 22 | Gruvbox theme | `omarchy theme set` |
-| 23 | Default agent OpenCode | `omarchy default agent` |
+| 23 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
+| 24 | Default agent OpenCode | `omarchy default agent` |
 
 The browser extensions force-installed via policy are: Proton Pass, uBlock
 Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.
