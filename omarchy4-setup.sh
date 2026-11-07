@@ -210,10 +210,24 @@ step_plugins() {
 }
 
 # ---------------------------------------------------------------------------
-# 7. Set all monitor scaling to 1x
+# 7. Remove Quickshell plugin: Elsewhen (world clock)
+# ---------------------------------------------------------------------------
+step_elsewhen() {
+  info "7. Remove plugin: Elsewhen"
+  # Elsewhen is a first-party plugin, so it cannot be deleted; disabling it
+  # removes it from the bar and stops it loading.
+  if confirm "Remove the Elsewhen (world clock) plugin?"; then
+    run omarchy plugin disable omarchy.elsewhen 2>/dev/null || skip "elsewhen already disabled"
+  else
+    skip "skipped"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# 8. Set all monitor scaling to 1x
 # ---------------------------------------------------------------------------
 step_monitors() {
-  info "7. Monitor scaling to 1"
+  info "8. Monitor scaling to 1"
   local mon="$HOME/.config/hypr/monitors.lua"
   if [[ -f "$mon" ]] && grep -q 'omarchy_monitor_scale = 1' "$mon"; then
     skip "monitor scaling already 1x"
@@ -234,10 +248,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 8. Set terminal font size to 14
+# 9. Set terminal font size to 14
 # ---------------------------------------------------------------------------
 step_terminal_font() {
-  info "8. Foot font size 14"
+  info "9. Foot font size 14"
   local ini="$HOME/.config/foot/foot.ini"
   [[ -f "$ini" ]] || { skip "foot config missing: $ini"; return 0; }
   if grep -q 'font=.*:size=14' "$ini"; then
@@ -251,10 +265,10 @@ step_terminal_font() {
 }
 
 # ---------------------------------------------------------------------------
-# 9. Disable Hyprland animations
+# 10. Disable Hyprland animations
 # ---------------------------------------------------------------------------
 step_animations() {
-  info "9. Disable Hyprland animations"
+  info "10. Disable Hyprland animations"
   local look="$HOME/.config/hypr/looknfeel.lua"
   [[ -f "$look" ]] || { skip "looknfeel.lua missing: $look"; return 0; }
   # Only an *uncommented* `animations = { ... enabled = false ... }` counts; the
@@ -284,10 +298,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 10. SUPER+Q to close window, unbind SUPER+W
+# 11. SUPER+Q to close window, unbind SUPER+W
 # ---------------------------------------------------------------------------
 step_close_window() {
-  info "10. Close window: SUPER+Q"
+  info "11. Close window: SUPER+Q"
   local bindings="$HOME/.config/hypr/bindings.lua"
   [[ -f "$bindings" ]] || { skip "bindings.lua missing: $bindings"; return 0; }
   if grep -q 'SUPER + Q.*Close window' "$bindings" 2>/dev/null; then
@@ -307,10 +321,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 11. Remove ufw-docker and docker
+# 12. Remove ufw-docker and docker
 # ---------------------------------------------------------------------------
 step_docker() {
-  info "11. Remove docker"
+  info "12. Remove docker"
   confirm "Remove docker and ufw-docker?" || { skip "skipped"; return 0; }
   run omarchy pkg drop ufw-docker && \
   run omarchy pkg drop docker docker-buildx docker-compose && \
@@ -318,10 +332,10 @@ step_docker() {
 }
 
 # ---------------------------------------------------------------------------
-# 12. SSH key + config for GitHub
+# 13. SSH key + config for GitHub
 # ---------------------------------------------------------------------------
 step_ssh() {
-  info "12. SSH key (ed25519) + github.com config"
+  info "13. SSH key (ed25519) + github.com config"
   confirm "Generate the GitHub SSH key and configure ~/.ssh/config?" || { skip "skipped"; return 0; }
 
   mkdir -p "$HOME/.ssh"
@@ -363,10 +377,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 13. Keyboard & touchpad
+# 14. Keyboard & touchpad
 # ---------------------------------------------------------------------------
 step_input() {
-  info "13. Keyboard & touchpad settings"
+  info "14. Keyboard & touchpad settings"
   local input="$HOME/.config/hypr/input.lua"
   [[ -f "$input" ]] || { skip "input.lua missing: $input"; return 0; }
   if grep -q 'caps:escape' "$input" 2>/dev/null; then
@@ -393,19 +407,19 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 14. Toggle screensaver to off
+# 15. Toggle screensaver to off
 # ---------------------------------------------------------------------------
 step_screensaver() {
-  info "14. Disable screensaver"
+  info "15. Disable screensaver"
   confirm "Disable the screensaver?" || { skip "skipped"; return 0; }
   run omarchy toggle screensaver off
 }
 
 # ---------------------------------------------------------------------------
-# 15. Add frequent apps shortcuts: Super+Shift+O -> Obsidian
+# 16. Add frequent apps shortcuts: Super+Shift+O -> Obsidian
 # ---------------------------------------------------------------------------
 step_obsidian_shortcut() {
-  info "15. Obsidian shortcut: SUPER+SHIFT+O"
+  info "16. Obsidian shortcut: SUPER+SHIFT+O"
   local bindings="$HOME/.config/hypr/bindings.lua"
   [[ -f "$bindings" ]] || { skip "bindings.lua missing: $bindings"; return 0; }
   if grep -q 'SUPER + SHIFT + O' "$bindings" 2>/dev/null; then
@@ -424,10 +438,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 16. Nvim: Enable relative line numbering
+# 17. Nvim: Enable relative line numbering
 # ---------------------------------------------------------------------------
 step_nvim() {
-  info "16. Nvim relative line numbers"
+  info "17. Nvim relative line numbers"
   local init="$HOME/.config/nvim/init.lua"
   [[ -f "$init" ]] || { skip "nvim init.lua missing: $init"; return 0; }
   if grep -q 'relativenumber' "$init" 2>/dev/null; then
@@ -443,10 +457,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 17. Nvim: indentation size 8 (editor options + formatters)
+# 18. Nvim: indentation size 8 (editor options + formatters)
 # ---------------------------------------------------------------------------
 step_nvim_indent() {
-  info "17. Nvim indentation to 8 spaces (formatters included)"
+  info "18. Nvim indentation to 8 spaces (formatters included)"
   local nvim="$HOME/.config/nvim"
   [[ -d "$nvim" ]] || { skip "nvim config missing: $nvim"; return 0; }
   confirm "Set Neovim and its formatters to 8-space indentation?" || { skip "skipped"; return 0; }
@@ -555,11 +569,11 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 18. Nvim: enable the clangd and dap.core LazyExtras (the LazyExtras way is
+# 19. Nvim: enable the clangd and dap.core LazyExtras (the LazyExtras way is
 #     the "extras" array in lazyvim.json)
 # ---------------------------------------------------------------------------
 step_nvim_extras() {
-  info "18. Nvim LazyExtras: clangd + dap.core"
+  info "19. Nvim LazyExtras: clangd + dap.core"
   local lazyjson="$HOME/.config/nvim/lazyvim.json"
   [[ -f "$lazyjson" ]] || { skip "lazyvim.json missing: $lazyjson"; return 0; }
 
@@ -593,10 +607,10 @@ step_nvim_extras() {
 }
 
 # ---------------------------------------------------------------------------
-# 19. Install batctl-tui-bin from AUR (thresholds: manual config)
+# 20. Install batctl-tui-bin from AUR (thresholds: manual config)
 # ---------------------------------------------------------------------------
 step_batctl() {
-  info "19. Install batctl-tui-bin"
+  info "20. Install batctl-tui-bin"
   if pacman -Qi batctl-tui-bin &>/dev/null; then
     skip "batctl-tui-bin already installed"
   else
@@ -608,10 +622,10 @@ step_batctl() {
 }
 
 # ---------------------------------------------------------------------------
-# 20. Remove the Wallpapers and Work/tries directories
+# 21. Remove the Wallpapers and Work/tries directories
 # ---------------------------------------------------------------------------
 step_remove_dirs() {
-  info "20. Remove Wallpapers and Work/tries directories"
+  info "21. Remove Wallpapers and Work/tries directories"
   local -a dirs=("$HOME/Wallpapers" "$HOME/Work/tries")
   local any=false
   for d in "${dirs[@]}"; do
@@ -632,10 +646,10 @@ step_remove_dirs() {
 }
 
 # ---------------------------------------------------------------------------
-# 21. Set up fingerprint authentication
+# 22. Set up fingerprint authentication
 # ---------------------------------------------------------------------------
 step_fingerprint() {
-  info "21. Fingerprint setup"
+  info "22. Fingerprint setup"
   if [[ "$ASSUME_YES" == true ]]; then
     # Enrollment needs the user to touch the sensor; leave it to the manual steps.
     skip "fingerprint enrollment needs interaction (see manual steps)"
@@ -653,19 +667,19 @@ step_fingerprint() {
 }
 
 # ---------------------------------------------------------------------------
-# 22. Set theme to Gruvbox
+# 23. Set theme to Gruvbox
 # ---------------------------------------------------------------------------
 step_theme() {
-  info "22. Set theme to Gruvbox"
+  info "23. Set theme to Gruvbox"
   confirm "Set the theme to Gruvbox?" || { skip "skipped"; return 0; }
   run omarchy theme set gruvbox
 }
 
 # ---------------------------------------------------------------------------
-# 23. Set a global Node.js version in mise
+# 24. Set a global Node.js version in mise
 # ---------------------------------------------------------------------------
 step_mise_node() {
-  info "23. Set global Node.js version in mise"
+  info "24. Set global Node.js version in mise"
   if ! command -v mise &>/dev/null; then
     skip "mise not installed"
     return 0
@@ -685,10 +699,10 @@ step_mise_node() {
 }
 
 # ---------------------------------------------------------------------------
-# 24. Set default agent to OpenCode
+# 25. Set default agent to OpenCode
 # ---------------------------------------------------------------------------
 step_default_agent() {
-  info "24. Set default agent to OpenCode"
+  info "25. Set default agent to OpenCode"
   confirm "Set the default coding agent to OpenCode?" || { skip "skipped"; return 0; }
   run omarchy default agent opencode
 }
@@ -790,6 +804,7 @@ EOF
   step_web_apps
   step_desktop_apps
   step_plugins
+  step_elsewhen
   step_monitors
   step_terminal_font
   step_animations
