@@ -43,7 +43,7 @@ interactive terminal it refuses to make changes unless `--noconfirm` is set.
 | 15 | Screensaver off | `omarchy toggle screensaver off` |
 | 16 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
 | 17 | Nvim relative line numbers | `init.lua` |
-| 18 | Nvim indentation 8 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
+| 18 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
 | 19 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
 | 20 | batctl-tui-bin | `omarchy pkg aur add` |
 | 21 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |

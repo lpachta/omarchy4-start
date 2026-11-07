@@ -457,27 +457,27 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 18. Nvim: indentation size 8 (editor options + formatters)
+# 18. Nvim: indentation size 4 (editor options + formatters)
 # ---------------------------------------------------------------------------
 step_nvim_indent() {
-  info "18. Nvim indentation to 8 spaces (formatters included)"
+  info "18. Nvim indentation to 4 spaces (formatters included)"
   local nvim="$HOME/.config/nvim"
   [[ -d "$nvim" ]] || { skip "nvim config missing: $nvim"; return 0; }
-  confirm "Set Neovim and its formatters to 8-space indentation?" || { skip "skipped"; return 0; }
+  confirm "Set Neovim and its formatters to 4-space indentation?" || { skip "skipped"; return 0; }
 
   # Global editor options (append so Omarchy's own options are preserved).
   local options="$nvim/lua/config/options.lua"
-  if [[ -f "$options" ]] && grep -q 'shiftwidth = 8' "$options"; then
-    skip "options.lua already 8-space"
+  if [[ -f "$options" ]] && grep -q 'shiftwidth = 4' "$options"; then
+    skip "options.lua already 4-space"
   elif [[ -f "$options" ]]; then
     run cp "$options" "$options.bak.$(date +%Y%m%d_%H%M%S)"
     append_file "$options" << 'EOF'
 
--- Indentation: 8 spaces everywhere
+-- Indentation: 4 spaces everywhere
 vim.opt.expandtab = true
-vim.opt.tabstop = 8
-vim.opt.shiftwidth = 8
-vim.opt.softtabstop = 8
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
 
 -- Keep the Python/YAML ftplugins from overriding the options above
 vim.g.python_recommended_style = 0
@@ -490,21 +490,21 @@ EOF
 
   # conform.nvim formatter args (LazyVim defaults to 2 spaces).
   local fmt="$nvim/lua/plugins/formatting.lua"
-  if [[ -f "$fmt" ]] && grep -q '"--indent-width", "8"' "$fmt"; then
-    skip "formatting.lua already 8-space"
+  if [[ -f "$fmt" ]] && grep -q '"--indent-width", "4"' "$fmt"; then
+    skip "formatting.lua already 4-space"
   else
     [[ -f "$fmt" ]] && run cp "$fmt" "$fmt.bak.$(date +%Y%m%d_%H%M%S)"
     write_file "$fmt" << 'EOF'
--- Make the formatters (conform.nvim) use 8-space indentation too.
+-- Make the formatters (conform.nvim) use 4-space indentation too.
 -- LazyVim's defaults are 2 spaces, so these args override them.
 return {
   {
     "stevearc/conform.nvim",
     opts = {
       formatters = {
-        stylua = { prepend_args = { "--indent-type", "Spaces", "--indent-width", "8" } },
-        shfmt = { prepend_args = { "-i", "8" } },
-        prettier = { prepend_args = { "--tab-width", "8", "--use-tabs", "false" } },
+        stylua = { prepend_args = { "--indent-type", "Spaces", "--indent-width", "4" } },
+        shfmt = { prepend_args = { "-i", "4" } },
+        prettier = { prepend_args = { "--tab-width", "4", "--use-tabs", "false" } },
       },
     },
   },
@@ -515,13 +515,13 @@ EOF
 
   # stylua.toml
   local stylua="$nvim/stylua.toml"
-  if [[ -f "$stylua" ]] && grep -q 'indent_width = 8' "$stylua"; then
-    skip "stylua.toml already 8-space"
+  if [[ -f "$stylua" ]] && grep -q 'indent_width = 4' "$stylua"; then
+    skip "stylua.toml already 4-space"
   else
     [[ -f "$stylua" ]] && run cp "$stylua" "$stylua.bak.$(date +%Y%m%d_%H%M%S)"
     write_file "$stylua" << 'EOF'
 indent_type = "Spaces"
-indent_width = 8
+indent_width = 4
 column_width = 120
 EOF
     ok "stylua.toml updated"
@@ -529,8 +529,8 @@ EOF
 
   # Home-wide fallback read by Neovim and many formatters.
   local ec="$HOME/.editorconfig"
-  if [[ -f "$ec" ]] && grep -q 'indent_size = 8' "$ec"; then
-    skip ".editorconfig already 8-space"
+  if [[ -f "$ec" ]] && grep -q 'indent_size = 4' "$ec"; then
+    skip ".editorconfig already 4-space"
   else
     [[ -f "$ec" ]] && run cp "$ec" "$ec.bak.$(date +%Y%m%d_%H%M%S)"
     write_file "$ec" << 'EOF'
@@ -540,8 +540,8 @@ root = true
 
 [*]
 indent_style = space
-indent_size = 8
-tab_width = 8
+indent_size = 4
+tab_width = 4
 
 [Makefile]
 indent_style = tab
@@ -554,14 +554,14 @@ EOF
 
   # clangd / clang-format style.
   local cf="$HOME/.clang-format"
-  if [[ -f "$cf" ]] && grep -q 'IndentWidth: 8' "$cf"; then
-    skip ".clang-format already 8-space"
+  if [[ -f "$cf" ]] && grep -q 'IndentWidth: 4' "$cf"; then
+    skip ".clang-format already 4-space"
   else
     [[ -f "$cf" ]] && run cp "$cf" "$cf.bak.$(date +%Y%m%d_%H%M%S)"
     write_file "$cf" << 'EOF'
 BasedOnStyle: LLVM
-IndentWidth: 8
-TabWidth: 8
+IndentWidth: 4
+TabWidth: 4
 UseTab: Never
 EOF
     ok ".clang-format updated"
