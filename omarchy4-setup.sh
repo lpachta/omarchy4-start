@@ -1013,6 +1013,42 @@ STEP_TITLES=(
   "fzf search scope"
 )
 
+# Step sections for the numbered list: the 1-based number of the last step in
+# each section, and the heading shown above that section.
+STEP_SECTION_ENDS=(7 12 17 25 27 30)
+STEP_SECTION_TITLES=(
+  "System & apps"
+  "Desktop & input"
+  "Terminal & editor"
+  "Shell & bar"
+  "Security"
+  "Tools"
+)
+
+# Print the 1-based section number a step belongs to.
+step_section() {
+  local step="$1" s
+  for s in "${!STEP_SECTION_ENDS[@]}"; do
+    if (( step <= STEP_SECTION_ENDS[s] )); then
+      printf '%d' "$((s + 1))"
+      return 0
+    fi
+  done
+  printf '%d' "${#STEP_SECTION_ENDS[@]}"
+}
+
+# Print a section heading unless the previous item was already in that section.
+print_section_heading() {
+  local section="$1" previous="$2"
+  if (( section == previous )); then
+    return 0
+  fi
+  if (( previous > 0 )); then
+    printf '\n'
+  fi
+  printf '\033[1;38;5;75m  %s\033[0m\n' "${STEP_SECTION_TITLES[$((section - 1))]}"
+}
+
 print_titles() {
   local -a titles=("$@")
   local i
@@ -1022,7 +1058,23 @@ print_titles() {
 }
 
 print_step_list() {
-  print_titles "${STEP_TITLES[@]}"
+  local i section last=0
+  for i in "${!STEP_TITLES[@]}"; do
+    section=$(step_section "$((i + 1))")
+    print_section_heading "$section" "$last"
+    last=$section
+    printf '  %2d) %s\n' "$((i + 1))" "${STEP_TITLES[$i]}"
+  done
+}
+
+print_selected_steps() {
+  local i section last=0
+  for i in "${SELECTED[@]}"; do
+    section=$(step_section "$i")
+    print_section_heading "$section" "$last"
+    last=$section
+    printf '  %2d) %s\n' "$i" "${STEP_TITLES[$((i - 1))]}"
+  done
 }
 
 # Turn a selection spec into the global SELECTED array (1-based item numbers).
@@ -1102,15 +1154,25 @@ parse_selection() {
 }
 
 # Show a numbered list, let the user include/exclude items, then confirm once.
-# Usage: choose_from_list <heading> <noun> <title...>
+# Usage: choose_from_list [--sections] <heading> <noun> <title...>
+#   --sections  group the list with the STEP_SECTION_* headings
 choose_from_list() {
+  local sections=false
+  if [[ "${1:-}" == "--sections" ]]; then
+    sections=true
+    shift
+  fi
   local heading="$1" noun="$2"
   shift 2
   local -a titles=("$@")
   local n=${#titles[@]}
 
   printf '\n\033[1;38;5;75m%s:\033[0m\n' "$heading"
-  print_titles "${titles[@]}"
+  if [[ "$sections" == true ]]; then
+    print_step_list
+  else
+    print_titles "${titles[@]}"
+  fi
   printf '\n'
   printf 'Run which %s? Enter = all. Numbers/ranges select, ^ or - excludes.\n' "$noun"
   printf 'Examples: "1 3 5-8"   "^4 ^10-12"   "1-10 ^4"\n\n'
@@ -1134,10 +1196,14 @@ choose_from_list() {
   fi
 
   printf '\n\033[1;38;5;75mSelected %d of %d %s:\033[0m\n' "${#SELECTED[@]}" "$n" "$noun"
-  local i
-  for i in "${SELECTED[@]}"; do
-    printf '  %2d) %s\n' "$i" "${titles[$((i - 1))]}"
-  done
+  if [[ "$sections" == true ]]; then
+    print_selected_steps
+  else
+    local i
+    for i in "${SELECTED[@]}"; do
+      printf '  %2d) %s\n' "$i" "${titles[$((i - 1))]}"
+    done
+  fi
   printf '\n'
 
   # Pacman-style: Enter accepts the selection.
@@ -1146,7 +1212,7 @@ choose_from_list() {
 }
 
 choose_steps() {
-  choose_from_list "Steps" "steps" "${STEP_TITLES[@]}"
+  choose_from_list --sections "Steps" "steps" "${STEP_TITLES[@]}"
 }
 
 # ---------------------------------------------------------------------------
