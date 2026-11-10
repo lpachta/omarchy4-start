@@ -40,32 +40,32 @@ terminal it refuses to choose steps unless `--noconfirm` is set.
 | 2 | Chromium policies: DuckDuckGo default, extensions, no password manager, smooth scrolling off | Chromium managed policy |
 | 3 | Install web apps (auto-fetched icons) | `omarchy webapp install` |
 | 4 | Install desktop apps (incl. `felix-rs` TUI file manager) | `omarchy pkg add` |
-| 5 | Enable Active Window plugin | `omarchy plugin enable` |
-| 6 | Disable Omarchy menu plugin | `omarchy plugin disable` |
-| 7 | Remove Elsewhen (world clock) plugin | `omarchy plugin disable` |
-| 8 | Remove Agents plugin | `omarchy plugin disable` |
-| 9 | Remove Superwhisper package + shell plugin | `omarchy plugin remove`, `omarchy pkg drop` |
-| 10 | Monitor scaling 1x | `monitors.lua` |
-| 11 | Foot font size 14 | `foot.ini` |
-| 12 | Disable Hyprland animations | `looknfeel.lua` |
-| 13 | SUPER+Q close window | `bindings.lua` |
-| 14 | Remove ufw-docker + docker | `omarchy pkg drop` |
-| 15 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
-| 16 | Keyboard & touchpad | `input.lua` |
-| 17 | Screensaver off | `omarchy toggle screensaver off` |
-| 18 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
-| 19 | Nvim relative line numbers | `init.lua` |
-| 20 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
-| 21 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
-| 22 | Disable Neovim spell checking | `autocmds.lua` |
-| 23 | batctl-tui-bin | `omarchy pkg aur add` |
-| 24 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
-| 25 | Fingerprint authentication | `omarchy setup security fingerprint` |
-| 26 | Gruvbox theme | `omarchy theme set` |
-| 27 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
-| 28 | Default agent OpenCode | `omarchy default agent` |
-| 29 | fzf skips hidden folders except `.config` | `~/.bashrc` |
-| 30 | Move keyboard layout next to the clock | `omarchy bar move` |
+| 5 | Remove ufw-docker + docker | `omarchy pkg drop` |
+| 6 | batctl-tui-bin | `omarchy pkg aur add` |
+| 7 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
+| 8 | Monitor scaling 1x | `monitors.lua` |
+| 9 | Disable Hyprland animations | `looknfeel.lua` |
+| 10 | SUPER+Q close window | `bindings.lua` |
+| 11 | Keyboard & touchpad | `input.lua` |
+| 12 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
+| 13 | Foot font size 14 | `foot.ini` |
+| 14 | Nvim relative line numbers | `init.lua` |
+| 15 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
+| 16 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
+| 17 | Disable Neovim spell checking | `autocmds.lua` |
+| 18 | Gruvbox theme | `omarchy theme set` |
+| 19 | Enable Active Window plugin | `omarchy plugin enable` |
+| 20 | Disable Omarchy menu plugin | `omarchy plugin disable` |
+| 21 | Remove Elsewhen (world clock) plugin | `omarchy plugin disable` |
+| 22 | Remove Agents plugin | `omarchy plugin disable` |
+| 23 | Remove Superwhisper package + shell plugin | `omarchy plugin remove`, `omarchy pkg drop` |
+| 24 | Move keyboard layout next to the clock | `omarchy bar move` |
+| 25 | Screensaver off | `omarchy toggle screensaver off` |
+| 26 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
+| 27 | Fingerprint authentication | `omarchy setup security fingerprint` |
+| 28 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
+| 29 | Default agent OpenCode | `omarchy default agent` |
+| 30 | fzf skips hidden folders except `.config` | `~/.bashrc` |
 
 The browser extensions force-installed via policy are: Proton Pass, uBlock
 Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.

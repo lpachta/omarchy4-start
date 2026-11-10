@@ -199,116 +199,60 @@ step_desktop_apps() {
 }
 
 # ---------------------------------------------------------------------------
-# 5. Enable Quickshell plugin: Active Window
+# 5. Remove ufw-docker and docker
 # ---------------------------------------------------------------------------
-step_active_window() {
-  info "5. Enable plugin: Active Window"
-  run omarchy plugin enable omarchy.active-window 2>/dev/null || skip "active-window already enabled"
+step_docker() {
+  info "5. Remove docker"
+  confirm "Remove docker and ufw-docker?" || { skip "skipped"; return 0; }
+  run omarchy pkg drop ufw-docker && \
+  run omarchy pkg drop docker docker-buildx docker-compose && \
+  ok "docker removed"
 }
 
 # ---------------------------------------------------------------------------
-# 6. Disable Quickshell plugin: Omarchy menu
+# 6. Install batctl-tui-bin from AUR (thresholds: manual config)
 # ---------------------------------------------------------------------------
-step_menu() {
-  info "6. Disable plugin: Omarchy menu"
-  disable_bar_widget omarchy.menu "Omarchy menu"
+step_batctl() {
+  info "6. Install batctl-tui-bin"
+  if pacman -Qi batctl-tui-bin &>/dev/null; then
+    skip "batctl-tui-bin already installed"
+  else
+    confirm "Install batctl-tui-bin from the AUR?" || { skip "skipped"; return 0; }
+    run omarchy pkg aur add batctl-tui-bin
+  fi
+  printf '\n\033[1;38;5;214m  ! Configure bat thresholds (40-80%%) manually:\033[0m\n'
+  printf '    sudo batctl\n'
 }
 
 # ---------------------------------------------------------------------------
-# Remove a first-party bar widget (the effective removal for a built-in).
-# A failed disable used to be reported as success when stderr was redirected
-# and any failure was treated as "already disabled". Read the live state
-# instead, so the step is idempotent and can tell a real failure apart from an
-# already-disabled plugin.
+# 7. Remove the Wallpapers and Work/tries directories
 # ---------------------------------------------------------------------------
-disable_bar_widget() {
-  local id="$1" label="$2"
-  local enabled
-  enabled=$(omarchy plugin list --json 2>/dev/null \
-    | jq -r --arg id "$id" '.[] | select(.id == $id) | .enabled' 2>/dev/null || true)
-  if [[ "$enabled" == "false" ]]; then
-    skip "$label already disabled"
+step_remove_dirs() {
+  info "7. Remove Wallpapers and Work/tries directories"
+  local -a dirs=("$HOME/Wallpapers" "$HOME/Work/tries")
+  local any=false
+  for d in "${dirs[@]}"; do
+    [[ -e "$d" ]] && any=true
+  done
+  if [[ "$any" == false ]]; then
+    skip "Wallpapers and Work/tries already absent"
     return 0
   fi
-  if [[ -z "$enabled" ]]; then
-    warn "could not read the plugin list; is the Omarchy shell running?"
-    return 0
-  fi
-
-  confirm "Remove the $label plugin?" || { skip "skipped"; return 0; }
-
-  if ! run omarchy plugin disable "$id"; then
-    warn "failed to disable $id; is the Omarchy shell running?"
-    return 0
-  fi
-
-  [[ "$DRY_RUN" == true ]] && return 0
-
-  # Verify rather than assume: if the shell refused the change, say so instead
-  # of leaving the user believing the widget is gone.
-  enabled=$(omarchy plugin list --json 2>/dev/null \
-    | jq -r --arg id "$id" '.[] | select(.id == $id) | .enabled' 2>/dev/null || true)
-  if [[ "$enabled" != "false" ]]; then
-    warn "$id is still enabled (run: omarchy plugin disable $id)"
-    return 0
-  fi
-  ok "$label disabled"
-}
-
-# ---------------------------------------------------------------------------
-# 7. Remove Quickshell plugin: Elsewhen (world clock)
-# ---------------------------------------------------------------------------
-step_elsewhen() {
-  info "7. Remove plugin: Elsewhen"
-  # Elsewhen is a first-party plugin, so it cannot be deleted; disabling it
-  # removes it from the bar and persists that to ~/.config/omarchy/shell.json.
-  disable_bar_widget omarchy.elsewhen "Elsewhen"
-}
-
-# ---------------------------------------------------------------------------
-# 8. Remove Quickshell plugin: Agents
-# ---------------------------------------------------------------------------
-step_agents() {
-  info "8. Remove plugin: Agents"
-  # Agents is a first-party bar widget, removed the same way as Elsewhen.
-  disable_bar_widget omarchy.agents "Agents"
-}
-
-# ---------------------------------------------------------------------------
-# 9. Remove Superwhisper (package + its shell plugin)
-# ---------------------------------------------------------------------------
-step_superwhisper() {
-  info "9. Remove Superwhisper"
-  local plugin="$HOME/.config/omarchy/plugins/superwhisper-panel"
-  local installed=false
-  pacman -Qi superwhisper-bin &>/dev/null && installed=true
-  [[ -e "$plugin" || -L "$plugin" ]] && installed=true
-  if [[ "$installed" == false ]]; then
-    skip "Superwhisper already removed"
-    return 0
-  fi
-  confirm "Remove the Superwhisper package and its shell plugin?" || { skip "skipped"; return 0; }
-
-  # The plugin is a symlink into /opt/superwhisper; removing only the package
-  # leaves the dangling symlink behind, so unlink it first.
-  if [[ -e "$plugin" || -L "$plugin" ]]; then
-    if ! run omarchy plugin remove superwhisper-panel --yes; then
-      warn "could not remove the superwhisper-panel plugin"
+  confirm "Remove ~/Wallpapers and ~/Work/tries?" || { skip "skipped"; return 0; }
+  for d in "${dirs[@]}"; do
+    if [[ -e "$d" ]]; then
+      run rm -rf "$d" && ok "removed $d"
+    else
+      skip "$d not present"
     fi
-    if [[ -e "$plugin" || -L "$plugin" ]]; then
-      run rm -rf "$plugin"
-    fi
-  fi
-
-  run omarchy pkg drop superwhisper-bin
-  ok "Superwhisper removed"
+  done
 }
 
 # ---------------------------------------------------------------------------
-# 10. Set all monitor scaling to 1x
+# 8. Set all monitor scaling to 1x
 # ---------------------------------------------------------------------------
 step_monitors() {
-  info "10. Monitor scaling to 1"
+  info "8. Monitor scaling to 1"
   local mon="$HOME/.config/hypr/monitors.lua"
   if [[ -f "$mon" ]] && grep -q 'omarchy_monitor_scale = 1' "$mon"; then
     skip "monitor scaling already 1x"
@@ -329,27 +273,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 11. Set terminal font size to 14
-# ---------------------------------------------------------------------------
-step_terminal_font() {
-  info "11. Foot font size 14"
-  local ini="$HOME/.config/foot/foot.ini"
-  [[ -f "$ini" ]] || { skip "foot config missing: $ini"; return 0; }
-  if grep -q 'font=.*:size=14' "$ini"; then
-    skip "font size already 14"
-    return 0
-  fi
-  confirm "Set Foot font size to 14?" || { skip "skipped"; return 0; }
-  run cp "$ini" "$ini.bak.$(date +%Y%m%d_%H%M%S)"
-  run sed -i 's/font=.*:size=[0-9]*/font=JetBrainsMono Nerd Font:size=14/' "$ini"
-  ok "foot font size set to 14"
-}
-
-# ---------------------------------------------------------------------------
-# 12. Disable Hyprland animations
+# 9. Disable Hyprland animations
 # ---------------------------------------------------------------------------
 step_animations() {
-  info "12. Disable Hyprland animations"
+  info "9. Disable Hyprland animations"
   local look="$HOME/.config/hypr/looknfeel.lua"
   [[ -f "$look" ]] || { skip "looknfeel.lua missing: $look"; return 0; }
   # Only an *uncommented* `animations = { ... enabled = false ... }` counts; the
@@ -379,10 +306,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 13. SUPER+Q to close window, unbind SUPER+W
+# 10. SUPER+Q to close window, unbind SUPER+W
 # ---------------------------------------------------------------------------
 step_close_window() {
-  info "13. Close window: SUPER+Q"
+  info "10. Close window: SUPER+Q"
   local bindings="$HOME/.config/hypr/bindings.lua"
   [[ -f "$bindings" ]] || { skip "bindings.lua missing: $bindings"; return 0; }
   if grep -q 'SUPER + Q.*Close window' "$bindings" 2>/dev/null; then
@@ -402,66 +329,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 14. Remove ufw-docker and docker
-# ---------------------------------------------------------------------------
-step_docker() {
-  info "14. Remove docker"
-  confirm "Remove docker and ufw-docker?" || { skip "skipped"; return 0; }
-  run omarchy pkg drop ufw-docker && \
-  run omarchy pkg drop docker docker-buildx docker-compose && \
-  ok "docker removed"
-}
-
-# ---------------------------------------------------------------------------
-# 15. SSH key + config for GitHub
-# ---------------------------------------------------------------------------
-step_ssh() {
-  info "15. SSH key (ed25519) + github.com config"
-  confirm "Generate the GitHub SSH key and configure ~/.ssh/config?" || { skip "skipped"; return 0; }
-
-  mkdir -p "$HOME/.ssh"
-  run chmod 700 "$HOME/.ssh"
-
-  if [[ -f "$HOME/.ssh/id_ed25519" ]]; then
-    skip "~/.ssh/id_ed25519 already exists"
-  else
-    run ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" >/dev/null
-    ok "key generated"
-  fi
-
-  if [[ "$DRY_RUN" == true ]]; then
-    run eval 'ssh-agent -s'
-    run ssh-add "$HOME/.ssh/id_ed25519"
-  else
-    eval "$(ssh-agent -s)" >/dev/null 2>&1 || true
-    ssh-add "$HOME/.ssh/id_ed25519" 2>/dev/null || true
-  fi
-  ok "key added to ssh-agent"
-
-  # Use id_ed25519 (and only it) for github.com.
-  local cfg="$HOME/.ssh/config"
-  if [[ -f "$cfg" ]] && grep -q 'IdentityFile ~/.ssh/id_ed25519' "$cfg"; then
-    skip "~/.ssh/config already routes github.com to id_ed25519"
-    return 0
-  fi
-  [[ -f "$cfg" ]] && run cp "$cfg" "$cfg.bak.$(date +%Y%m%d_%H%M%S)"
-  append_file "$cfg" << 'EOF'
-
-Host github.com
-  HostName github.com
-  User git
-  IdentityFile ~/.ssh/id_ed25519
-  IdentitiesOnly yes
-EOF
-  run chmod 600 "$cfg"
-  ok "~/.ssh/config updated for github.com"
-}
-
-# ---------------------------------------------------------------------------
-# 16. Keyboard & touchpad
+# 11. Keyboard & touchpad
 # ---------------------------------------------------------------------------
 step_input() {
-  info "16. Keyboard & touchpad settings"
+  info "11. Keyboard & touchpad settings"
   local input="$HOME/.config/hypr/input.lua"
   [[ -f "$input" ]] || { skip "input.lua missing: $input"; return 0; }
   if grep -q 'caps:escape' "$input" 2>/dev/null; then
@@ -488,19 +359,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 17. Toggle screensaver to off
-# ---------------------------------------------------------------------------
-step_screensaver() {
-  info "17. Disable screensaver"
-  confirm "Disable the screensaver?" || { skip "skipped"; return 0; }
-  run omarchy toggle screensaver off
-}
-
-# ---------------------------------------------------------------------------
-# 18. Add frequent apps shortcuts: Super+Shift+O -> Obsidian
+# 12. Add frequent apps shortcuts: Super+Shift+O -> Obsidian
 # ---------------------------------------------------------------------------
 step_obsidian_shortcut() {
-  info "18. Obsidian shortcut: SUPER+SHIFT+O"
+  info "12. Obsidian shortcut: SUPER+SHIFT+O"
   local bindings="$HOME/.config/hypr/bindings.lua"
   [[ -f "$bindings" ]] || { skip "bindings.lua missing: $bindings"; return 0; }
   if grep -q 'SUPER + SHIFT + O' "$bindings" 2>/dev/null; then
@@ -519,10 +381,27 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 19. Nvim: Enable relative line numbering
+# 13. Set terminal font size to 14
+# ---------------------------------------------------------------------------
+step_terminal_font() {
+  info "13. Foot font size 14"
+  local ini="$HOME/.config/foot/foot.ini"
+  [[ -f "$ini" ]] || { skip "foot config missing: $ini"; return 0; }
+  if grep -q 'font=.*:size=14' "$ini"; then
+    skip "font size already 14"
+    return 0
+  fi
+  confirm "Set Foot font size to 14?" || { skip "skipped"; return 0; }
+  run cp "$ini" "$ini.bak.$(date +%Y%m%d_%H%M%S)"
+  run sed -i 's/font=.*:size=[0-9]*/font=JetBrainsMono Nerd Font:size=14/' "$ini"
+  ok "foot font size set to 14"
+}
+
+# ---------------------------------------------------------------------------
+# 14. Nvim: Enable relative line numbering
 # ---------------------------------------------------------------------------
 step_nvim() {
-  info "19. Nvim relative line numbers"
+  info "14. Nvim relative line numbers"
   local init="$HOME/.config/nvim/init.lua"
   [[ -f "$init" ]] || { skip "nvim init.lua missing: $init"; return 0; }
   if grep -q 'relativenumber' "$init" 2>/dev/null; then
@@ -538,10 +417,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 20. Nvim: indentation size 4 (editor options + formatters)
+# 15. Nvim: indentation size 4 (editor options + formatters)
 # ---------------------------------------------------------------------------
 step_nvim_indent() {
-  info "20. Nvim indentation to 4 spaces (formatters included)"
+  info "15. Nvim indentation to 4 spaces (formatters included)"
   local nvim="$HOME/.config/nvim"
   [[ -d "$nvim" ]] || { skip "nvim config missing: $nvim"; return 0; }
   confirm "Set Neovim and its formatters to 4-space indentation?" || { skip "skipped"; return 0; }
@@ -650,11 +529,11 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 21. Nvim: enable the clangd and dap.core LazyExtras (the LazyExtras way is
+# 16. Nvim: enable the clangd and dap.core LazyExtras (the LazyExtras way is
 #     the "extras" array in lazyvim.json)
 # ---------------------------------------------------------------------------
 step_nvim_extras() {
-  info "21. Nvim LazyExtras: clangd + dap.core"
+  info "16. Nvim LazyExtras: clangd + dap.core"
   local lazyjson="$HOME/.config/nvim/lazyvim.json"
   [[ -f "$lazyjson" ]] || { skip "lazyvim.json missing: $lazyjson"; return 0; }
 
@@ -688,10 +567,10 @@ step_nvim_extras() {
 }
 
 # ---------------------------------------------------------------------------
-# 22. Nvim: disable spell checking
+# 17. Nvim: disable spell checking
 # ---------------------------------------------------------------------------
 step_nvim_spell() {
-  info "22. Nvim spell checking off"
+  info "17. Nvim spell checking off"
   local autocmds="$HOME/.config/nvim/lua/config/autocmds.lua"
   [[ -f "$autocmds" ]] || { skip "nvim autocmds.lua missing: $autocmds"; return 0; }
   # LazyVim's wrap_spell autocmd turns spell on for text filetypes. The stock
@@ -712,49 +591,198 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 23. Install batctl-tui-bin from AUR (thresholds: manual config)
+# 18. Set theme to Gruvbox
 # ---------------------------------------------------------------------------
-step_batctl() {
-  info "23. Install batctl-tui-bin"
-  if pacman -Qi batctl-tui-bin &>/dev/null; then
-    skip "batctl-tui-bin already installed"
-  else
-    confirm "Install batctl-tui-bin from the AUR?" || { skip "skipped"; return 0; }
-    run omarchy pkg aur add batctl-tui-bin
-  fi
-  printf '\n\033[1;38;5;214m  ! Configure bat thresholds (40-80%%) manually:\033[0m\n'
-  printf '    sudo batctl\n'
+step_theme() {
+  info "18. Set theme to Gruvbox"
+  confirm "Set the theme to Gruvbox?" || { skip "skipped"; return 0; }
+  run omarchy theme set gruvbox
 }
 
 # ---------------------------------------------------------------------------
-# 24. Remove the Wallpapers and Work/tries directories
+# 19. Enable Quickshell plugin: Active Window
 # ---------------------------------------------------------------------------
-step_remove_dirs() {
-  info "24. Remove Wallpapers and Work/tries directories"
-  local -a dirs=("$HOME/Wallpapers" "$HOME/Work/tries")
-  local any=false
-  for d in "${dirs[@]}"; do
-    [[ -e "$d" ]] && any=true
-  done
-  if [[ "$any" == false ]]; then
-    skip "Wallpapers and Work/tries already absent"
+step_active_window() {
+  info "19. Enable plugin: Active Window"
+  run omarchy plugin enable omarchy.active-window 2>/dev/null || skip "active-window already enabled"
+}
+
+# ---------------------------------------------------------------------------
+# Remove a first-party bar widget (the effective removal for a built-in).
+# A failed disable used to be reported as success when stderr was redirected
+# and any failure was treated as "already disabled". Read the live state
+# instead, so the step is idempotent and can tell a real failure apart from an
+# already-disabled plugin.
+# ---------------------------------------------------------------------------
+disable_bar_widget() {
+  local id="$1" label="$2"
+  local enabled
+  enabled=$(omarchy plugin list --json 2>/dev/null \
+    | jq -r --arg id "$id" '.[] | select(.id == $id) | .enabled' 2>/dev/null || true)
+  if [[ "$enabled" == "false" ]]; then
+    skip "$label already disabled"
     return 0
   fi
-  confirm "Remove ~/Wallpapers and ~/Work/tries?" || { skip "skipped"; return 0; }
-  for d in "${dirs[@]}"; do
-    if [[ -e "$d" ]]; then
-      run rm -rf "$d" && ok "removed $d"
-    else
-      skip "$d not present"
-    fi
-  done
+  if [[ -z "$enabled" ]]; then
+    warn "could not read the plugin list; is the Omarchy shell running?"
+    return 0
+  fi
+
+  confirm "Remove the $label plugin?" || { skip "skipped"; return 0; }
+
+  if ! run omarchy plugin disable "$id"; then
+    warn "failed to disable $id; is the Omarchy shell running?"
+    return 0
+  fi
+
+  [[ "$DRY_RUN" == true ]] && return 0
+
+  # Verify rather than assume: if the shell refused the change, say so instead
+  # of leaving the user believing the widget is gone.
+  enabled=$(omarchy plugin list --json 2>/dev/null \
+    | jq -r --arg id "$id" '.[] | select(.id == $id) | .enabled' 2>/dev/null || true)
+  if [[ "$enabled" != "false" ]]; then
+    warn "$id is still enabled (run: omarchy plugin disable $id)"
+    return 0
+  fi
+  ok "$label disabled"
 }
 
 # ---------------------------------------------------------------------------
-# 25. Set up fingerprint authentication
+# 20. Disable Quickshell plugin: Omarchy menu
+# ---------------------------------------------------------------------------
+step_menu() {
+  info "20. Disable plugin: Omarchy menu"
+  disable_bar_widget omarchy.menu "Omarchy menu"
+}
+
+# ---------------------------------------------------------------------------
+# 21. Remove Quickshell plugin: Elsewhen (world clock)
+# ---------------------------------------------------------------------------
+step_elsewhen() {
+  info "21. Remove plugin: Elsewhen"
+  # Elsewhen is a first-party plugin, so it cannot be deleted; disabling it
+  # removes it from the bar and persists that to ~/.config/omarchy/shell.json.
+  disable_bar_widget omarchy.elsewhen "Elsewhen"
+}
+
+# ---------------------------------------------------------------------------
+# 22. Remove Quickshell plugin: Agents
+# ---------------------------------------------------------------------------
+step_agents() {
+  info "22. Remove plugin: Agents"
+  # Agents is a first-party bar widget, removed the same way as Elsewhen.
+  disable_bar_widget omarchy.agents "Agents"
+}
+
+# ---------------------------------------------------------------------------
+# 23. Remove Superwhisper (package + its shell plugin)
+# ---------------------------------------------------------------------------
+step_superwhisper() {
+  info "23. Remove Superwhisper"
+  local plugin="$HOME/.config/omarchy/plugins/superwhisper-panel"
+  local installed=false
+  pacman -Qi superwhisper-bin &>/dev/null && installed=true
+  [[ -e "$plugin" || -L "$plugin" ]] && installed=true
+  if [[ "$installed" == false ]]; then
+    skip "Superwhisper already removed"
+    return 0
+  fi
+  confirm "Remove the Superwhisper package and its shell plugin?" || { skip "skipped"; return 0; }
+
+  # The plugin is a symlink into /opt/superwhisper; removing only the package
+  # leaves the dangling symlink behind, so unlink it first.
+  if [[ -e "$plugin" || -L "$plugin" ]]; then
+    if ! run omarchy plugin remove superwhisper-panel --yes; then
+      warn "could not remove the superwhisper-panel plugin"
+    fi
+    if [[ -e "$plugin" || -L "$plugin" ]]; then
+      run rm -rf "$plugin"
+    fi
+  fi
+
+  run omarchy pkg drop superwhisper-bin
+  ok "Superwhisper removed"
+}
+
+# ---------------------------------------------------------------------------
+# 24. Move the keyboard layout widget next to the clock
+# ---------------------------------------------------------------------------
+step_bar_keyboard_layout() {
+  info "24. Move keyboard layout next to the clock"
+  local shell_json="$HOME/.config/omarchy/shell.json"
+  [[ -f "$shell_json" ]] || { skip "shell.json missing: $shell_json"; return 0; }
+
+  # centerEnd hangs off the right edge of the centered clock box, so the first
+  # widget in centerEnd sits immediately right of the clock.
+  if jq -e '(.bar.layout.centerEnd // [])[0].id == "omarchy.keyboard-layout"' "$shell_json" >/dev/null 2>&1; then
+    skip "keyboard layout already next to the clock"
+    return 0
+  fi
+  confirm "Move the keyboard layout widget next to the clock?" || { skip "skipped"; return 0; }
+  run omarchy bar move omarchy.keyboard-layout --section centerEnd --index 0
+  ok "keyboard layout moved next to the clock"
+}
+
+# ---------------------------------------------------------------------------
+# 25. Toggle screensaver to off
+# ---------------------------------------------------------------------------
+step_screensaver() {
+  info "25. Disable screensaver"
+  confirm "Disable the screensaver?" || { skip "skipped"; return 0; }
+  run omarchy toggle screensaver off
+}
+
+# ---------------------------------------------------------------------------
+# 26. SSH key + config for GitHub
+# ---------------------------------------------------------------------------
+step_ssh() {
+  info "26. SSH key (ed25519) + github.com config"
+  confirm "Generate the GitHub SSH key and configure ~/.ssh/config?" || { skip "skipped"; return 0; }
+
+  mkdir -p "$HOME/.ssh"
+  run chmod 700 "$HOME/.ssh"
+
+  if [[ -f "$HOME/.ssh/id_ed25519" ]]; then
+    skip "~/.ssh/id_ed25519 already exists"
+  else
+    run ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" >/dev/null
+    ok "key generated"
+  fi
+
+  if [[ "$DRY_RUN" == true ]]; then
+    run eval 'ssh-agent -s'
+    run ssh-add "$HOME/.ssh/id_ed25519"
+  else
+    eval "$(ssh-agent -s)" >/dev/null 2>&1 || true
+    ssh-add "$HOME/.ssh/id_ed25519" 2>/dev/null || true
+  fi
+  ok "key added to ssh-agent"
+
+  # Use id_ed25519 (and only it) for github.com.
+  local cfg="$HOME/.ssh/config"
+  if [[ -f "$cfg" ]] && grep -q 'IdentityFile ~/.ssh/id_ed25519' "$cfg"; then
+    skip "~/.ssh/config already routes github.com to id_ed25519"
+    return 0
+  fi
+  [[ -f "$cfg" ]] && run cp "$cfg" "$cfg.bak.$(date +%Y%m%d_%H%M%S)"
+  append_file "$cfg" << 'EOF'
+
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+EOF
+  run chmod 600 "$cfg"
+  ok "~/.ssh/config updated for github.com"
+}
+
+# ---------------------------------------------------------------------------
+# 27. Set up fingerprint authentication
 # ---------------------------------------------------------------------------
 step_fingerprint() {
-  info "25. Fingerprint setup"
+  info "27. Fingerprint setup"
   if [[ "$ASSUME_YES" == true ]]; then
     # Enrollment needs the user to touch the sensor; leave it to the manual steps.
     skip "fingerprint enrollment needs interaction (see manual steps)"
@@ -772,19 +800,10 @@ step_fingerprint() {
 }
 
 # ---------------------------------------------------------------------------
-# 26. Set theme to Gruvbox
-# ---------------------------------------------------------------------------
-step_theme() {
-  info "26. Set theme to Gruvbox"
-  confirm "Set the theme to Gruvbox?" || { skip "skipped"; return 0; }
-  run omarchy theme set gruvbox
-}
-
-# ---------------------------------------------------------------------------
-# 27. Set a global Node.js version in mise
+# 28. Set a global Node.js version in mise
 # ---------------------------------------------------------------------------
 step_mise_node() {
-  info "27. Set global Node.js version in mise"
+  info "28. Set global Node.js version in mise"
   if ! command -v mise &>/dev/null; then
     skip "mise not installed"
     return 0
@@ -804,19 +823,19 @@ step_mise_node() {
 }
 
 # ---------------------------------------------------------------------------
-# 28. Set default agent to OpenCode
+# 29. Set default agent to OpenCode
 # ---------------------------------------------------------------------------
 step_default_agent() {
-  info "28. Set default agent to OpenCode"
+  info "29. Set default agent to OpenCode"
   confirm "Set the default coding agent to OpenCode?" || { skip "skipped"; return 0; }
   run omarchy default agent opencode
 }
 
 # ---------------------------------------------------------------------------
-# 29. Configure fzf to skip hidden folders except .config
+# 30. Configure fzf to skip hidden folders except .config
 # ---------------------------------------------------------------------------
 step_fzf() {
-  info "29. Configure fzf search scope"
+  info "30. Configure fzf search scope"
   local rc="$HOME/.bashrc"
   local marker="# fzf: skip dotted folders (except .config)"
   [[ -f "$rc" ]] || { skip "$rc missing"; return 0; }
@@ -841,25 +860,6 @@ export FZF_CTRL_T_COMMAND="$_FZF_ANY_CMD"
 export FZF_ALT_C_COMMAND="$_FZF_DIR_CMD"
 EOF
   ok "fzf search scope configured"
-}
-
-# ---------------------------------------------------------------------------
-# 30. Move the keyboard layout widget next to the clock
-# ---------------------------------------------------------------------------
-step_bar_keyboard_layout() {
-  info "30. Move keyboard layout next to the clock"
-  local shell_json="$HOME/.config/omarchy/shell.json"
-  [[ -f "$shell_json" ]] || { skip "shell.json missing: $shell_json"; return 0; }
-
-  # centerEnd hangs off the right edge of the centered clock box, so the first
-  # widget in centerEnd sits immediately right of the clock.
-  if jq -e '(.bar.layout.centerEnd // [])[0].id == "omarchy.keyboard-layout"' "$shell_json" >/dev/null 2>&1; then
-    skip "keyboard layout already next to the clock"
-    return 0
-  fi
-  confirm "Move the keyboard layout widget next to the clock?" || { skip "skipped"; return 0; }
-  run omarchy bar move omarchy.keyboard-layout --section centerEnd --index 0
-  ok "keyboard layout moved next to the clock"
 }
 
 # ---------------------------------------------------------------------------
@@ -952,32 +952,32 @@ STEP_FUNCS=(
   step_chromium_policies
   step_web_apps
   step_desktop_apps
+  step_docker
+  step_batctl
+  step_remove_dirs
+  step_monitors
+  step_animations
+  step_close_window
+  step_input
+  step_obsidian_shortcut
+  step_terminal_font
+  step_nvim
+  step_nvim_indent
+  step_nvim_extras
+  step_nvim_spell
+  step_theme
   step_active_window
   step_menu
   step_elsewhen
   step_agents
   step_superwhisper
-  step_monitors
-  step_terminal_font
-  step_animations
-  step_close_window
-  step_docker
-  step_ssh
-  step_input
+  step_bar_keyboard_layout
   step_screensaver
-  step_obsidian_shortcut
-  step_nvim
-  step_nvim_indent
-  step_nvim_extras
-  step_nvim_spell
-  step_batctl
-  step_remove_dirs
+  step_ssh
   step_fingerprint
-  step_theme
   step_mise_node
   step_default_agent
   step_fzf
-  step_bar_keyboard_layout
 )
 
 STEP_TITLES=(
@@ -985,32 +985,32 @@ STEP_TITLES=(
   "Chromium policies (search, extensions, privacy)"
   "Install web apps"
   "Install desktop apps"
+  "Remove docker"
+  "Install batctl-tui-bin"
+  "Remove ~/Wallpapers and ~/Work/tries"
+  "Monitor scaling 1x"
+  "Disable Hyprland animations"
+  "SUPER+Q to close window"
+  "Keyboard & touchpad"
+  "SUPER+SHIFT+O: Obsidian"
+  "Foot font size 14"
+  "Nvim relative line numbers"
+  "Nvim indentation 4 spaces"
+  "Nvim LazyExtras: clangd + dap.core"
+  "Disable Nvim spell checking"
+  "Gruvbox theme"
   "Enable the Active Window plugin"
   "Disable the Omarchy menu plugin"
   "Remove the Elsewhen (world clock) plugin"
   "Remove the Agents plugin"
   "Remove Superwhisper"
-  "Monitor scaling 1x"
-  "Foot font size 14"
-  "Disable Hyprland animations"
-  "SUPER+Q to close window"
-  "Remove docker"
-  "SSH key + github.com config"
-  "Keyboard & touchpad"
+  "Move the keyboard layout next to the clock"
   "Disable the screensaver"
-  "SUPER+SHIFT+O: Obsidian"
-  "Nvim relative line numbers"
-  "Nvim indentation 4 spaces"
-  "Nvim LazyExtras: clangd + dap.core"
-  "Disable Nvim spell checking"
-  "Install batctl-tui-bin"
-  "Remove ~/Wallpapers and ~/Work/tries"
+  "SSH key + github.com config"
   "Fingerprint setup"
-  "Gruvbox theme"
   "Global Node.js version in mise"
   "Default agent OpenCode"
   "fzf search scope"
-  "Move the keyboard layout next to the clock"
 )
 
 print_titles() {
