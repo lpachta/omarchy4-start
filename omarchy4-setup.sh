@@ -839,6 +839,25 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# 30. Move the keyboard layout widget next to the clock
+# ---------------------------------------------------------------------------
+step_bar_keyboard_layout() {
+  info "30. Move keyboard layout next to the clock"
+  local shell_json="$HOME/.config/omarchy/shell.json"
+  [[ -f "$shell_json" ]] || { skip "shell.json missing: $shell_json"; return 0; }
+
+  # centerEnd hangs off the right edge of the centered clock box, so the first
+  # widget in centerEnd sits immediately right of the clock.
+  if jq -e '(.bar.layout.centerEnd // [])[0].id == "omarchy.keyboard-layout"' "$shell_json" >/dev/null 2>&1; then
+    skip "keyboard layout already next to the clock"
+    return 0
+  fi
+  confirm "Move the keyboard layout widget next to the clock?" || { skip "skipped"; return 0; }
+  run omarchy bar move omarchy.keyboard-layout --section centerEnd --index 0
+  ok "keyboard layout moved next to the clock"
+}
+
+# ---------------------------------------------------------------------------
 # Final: reload Hyprland + restart shell
 # ---------------------------------------------------------------------------
 step_apply() {
@@ -958,6 +977,7 @@ EOF
   step_mise_node
   step_default_agent
   step_fzf
+  step_bar_keyboard_layout
   step_apply
 
   ok "Setup complete"
