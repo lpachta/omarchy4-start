@@ -33,25 +33,28 @@ interactive terminal it refuses to make changes unless `--noconfirm` is set.
 | 5 | Enable Active Window plugin | `omarchy plugin enable` |
 | 6 | Disable Omarchy menu plugin | `omarchy plugin disable` |
 | 7 | Remove Elsewhen (world clock) plugin | `omarchy plugin disable` |
-| 8 | Monitor scaling 1x | `monitors.lua` |
-| 9 | Foot font size 14 | `foot.ini` |
-| 10 | Disable Hyprland animations | `looknfeel.lua` |
-| 11 | SUPER+Q close window | `bindings.lua` |
-| 12 | Remove ufw-docker + docker | `omarchy pkg drop` |
-| 13 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
-| 14 | Keyboard & touchpad | `input.lua` |
-| 15 | Screensaver off | `omarchy toggle screensaver off` |
-| 16 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
-| 17 | Nvim relative line numbers | `init.lua` |
-| 18 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
-| 19 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
-| 20 | batctl-tui-bin | `omarchy pkg aur add` |
-| 21 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
-| 22 | Fingerprint authentication | `omarchy setup security fingerprint` |
-| 23 | Gruvbox theme | `omarchy theme set` |
-| 24 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
-| 25 | Default agent OpenCode | `omarchy default agent` |
-| 26 | fzf skips hidden folders except `.config` | `~/.bashrc` |
+| 8 | Remove Agents plugin | `omarchy plugin disable` |
+| 9 | Remove Superwhisper package + shell plugin | `omarchy plugin remove`, `omarchy pkg drop` |
+| 10 | Monitor scaling 1x | `monitors.lua` |
+| 11 | Foot font size 14 | `foot.ini` |
+| 12 | Disable Hyprland animations | `looknfeel.lua` |
+| 13 | SUPER+Q close window | `bindings.lua` |
+| 14 | Remove ufw-docker + docker | `omarchy pkg drop` |
+| 15 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
+| 16 | Keyboard & touchpad | `input.lua` |
+| 17 | Screensaver off | `omarchy toggle screensaver off` |
+| 18 | SUPER+SHIFT+O: Obsidian | `bindings.lua` |
+| 19 | Nvim relative line numbers | `init.lua` |
+| 20 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
+| 21 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
+| 22 | Disable Neovim spell checking | `autocmds.lua` |
+| 23 | batctl-tui-bin | `omarchy pkg aur add` |
+| 24 | Remove `~/Wallpapers` and `~/Work/tries` | `rm -rf` |
+| 25 | Fingerprint authentication | `omarchy setup security fingerprint` |
+| 26 | Gruvbox theme | `omarchy theme set` |
+| 27 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
+| 28 | Default agent OpenCode | `omarchy default agent` |
+| 29 | fzf skips hidden folders except `.config` | `~/.bashrc` |
 
 The browser extensions force-installed via policy are: Proton Pass, uBlock
 Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.
