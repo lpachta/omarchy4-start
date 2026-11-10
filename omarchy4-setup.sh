@@ -215,12 +215,43 @@ step_plugins() {
 step_elsewhen() {
   info "7. Remove plugin: Elsewhen"
   # Elsewhen is a first-party plugin, so it cannot be deleted; disabling it
-  # removes it from the bar and stops it loading.
-  if confirm "Remove the Elsewhen (world clock) plugin?"; then
-    run omarchy plugin disable omarchy.elsewhen 2>/dev/null || skip "elsewhen already disabled"
-  else
-    skip "skipped"
+  # removes it from the bar and persists that to ~/.config/omarchy/shell.json.
+  local id="omarchy.elsewhen"
+
+  # A failed disable used to be reported as success (the old code redirected
+  # stderr and treated any failure as "already disabled"), which is silent and
+  # misleading. Read the live state instead, so the step is idempotent and can
+  # tell a real failure apart from an already-disabled plugin.
+  local enabled
+  enabled=$(omarchy plugin list --json 2>/dev/null \
+    | jq -r --arg id "$id" '.[] | select(.id == $id) | .enabled' 2>/dev/null || true)
+  if [[ "$enabled" == "false" ]]; then
+    skip "elsewhen already disabled"
+    return 0
   fi
+  if [[ -z "$enabled" ]]; then
+    warn "could not read the plugin list; is the Omarchy shell running?"
+    return 0
+  fi
+
+  confirm "Remove the Elsewhen (world clock) plugin?" || { skip "skipped"; return 0; }
+
+  if ! run omarchy plugin disable "$id"; then
+    warn "failed to disable $id; is the Omarchy shell running?"
+    return 0
+  fi
+
+  [[ "$DRY_RUN" == true ]] && return 0
+
+  # Verify rather than assume: if the shell refused the change, say so instead
+  # of leaving the user believing the widget is gone.
+  enabled=$(omarchy plugin list --json 2>/dev/null \
+    | jq -r --arg id "$id" '.[] | select(.id == $id) | .enabled' 2>/dev/null || true)
+  if [[ "$enabled" != "false" ]]; then
+    warn "$id is still enabled (run: omarchy plugin disable $id)"
+    return 0
+  fi
+  ok "elsewhen disabled"
 }
 
 # ---------------------------------------------------------------------------
