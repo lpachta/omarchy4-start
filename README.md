@@ -7,20 +7,30 @@ Based on the checklists in `Omarchy Quattro Start.md` and `~/Documents/omarchy-s
 ## Usage
 
 ```bash
-# Interactive: confirm every change with the Omarchy-style gum prompt
+# Interactive: pick steps from a numbered list, confirm once, then run
 ./omarchy4-setup.sh
 
-# Unattended: answer yes to everything (the original behavior)
+# Unattended: run every step (no list, no prompts)
 ./omarchy4-setup.sh --noconfirm
+
+# Just print the numbered step list
+./omarchy4-setup.sh --list
 
 # Preview without making changes
 DRY_RUN=true ./omarchy4-setup.sh
 ```
 
-Each change is confirmable the Omarchy way: the script uses `gum confirm`
-(themed by the active Omarchy theme) and skips any step you decline. With
-`--noconfirm` (or `DRY_RUN=true`) it runs straight through, and if there is no
-interactive terminal it refuses to make changes unless `--noconfirm` is set.
+Instead of asking after every step, the script prints the whole list and lets
+you choose what to run, pacman-style:
+
+- `Enter` (or `all`) runs everything
+- `1 3 5-8` runs only those steps
+- `^4 ^10-12` (or `-4 -10-12`) runs everything except those
+- `1-10 ^4` includes a range, then excludes from it
+
+It then shows the selected steps and asks once: `Proceed?`. With `--noconfirm`
+(or `DRY_RUN=true`) it runs straight through, and if there is no interactive
+terminal it refuses to choose steps unless `--noconfirm` is set.
 
 ## What it does
 
@@ -62,9 +72,10 @@ Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.
 
 ## Manual steps after running
 
-When run interactively, the script offers to walk through these one by one
-(opening Chromium, copying the SSH key and opening GitHub, and configuring
-battery thresholds in a floating terminal). With `--noconfirm` they are only
+When run interactively, the script offers the runnable ones as the same
+numbered list (open Chromium, copy the SSH key and open GitHub, and configure
+battery thresholds in a floating terminal), so you can pick them with the same
+number/range/`^` syntax and confirm once. With `--noconfirm` they are only
 printed.
 
 1. Open Chromium once so the policies apply (DuckDuckGo default, extensions, no

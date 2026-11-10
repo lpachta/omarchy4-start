@@ -9,14 +9,17 @@
 # Requires: a sudo user on Omarchy (Hyprland optional for hyprctl reload at the end).
 #
 # Usage:
-#   ./omarchy4-setup.sh              # ask before every change (gum confirm)
-#   ./omarchy4-setup.sh --noconfirm  # unattended, like the original script
+#   ./omarchy4-setup.sh              # pick steps from a numbered list, confirm once
+#   ./omarchy4-setup.sh --noconfirm  # run every step unattended
+#   ./omarchy4-setup.sh --list       # print the numbered step list
 #   DRY_RUN=true ./omarchy4-setup.sh # preview commands without executing them
 
 set -euo pipefail
 
 DRY_RUN="${DRY_RUN:-false}"
 ASSUME_YES=false
+STEP_CONFIRMED=false
+SELECTED=()
 
 GITHUB_EMAIL="lukin.pachta@proton.me"
 
@@ -37,15 +40,21 @@ run() {
 }
 
 # Ask for confirmation the omarchy way (gum confirm, themed by the active theme).
-# Autopilot when --noconfirm/DRY_RUN is set; otherwise require an interactive
-# terminal so a piped/CI run cannot make changes silently.
+# The one-time step-list confirmation sets STEP_CONFIRMED, so the individual
+# steps no longer prompt; --noconfirm/DRY_RUN do the same. Otherwise require an
+# interactive terminal so a piped/CI run cannot make changes silently. Pass
+# "true" as the second argument to make Enter answer Yes (pacman-style).
 confirm() {
-  local prompt="$1"
-  if [[ "$ASSUME_YES" == true || "$DRY_RUN" == true ]]; then
+  local prompt="$1" default_yes="${2:-false}"
+  if [[ "$STEP_CONFIRMED" == true || "$ASSUME_YES" == true || "$DRY_RUN" == true ]]; then
     return 0
   fi
   if [[ -t 0 && -t 1 ]] && command -v gum &>/dev/null; then
-    gum confirm "$prompt"
+    if [[ "$default_yes" == true ]]; then
+      gum confirm --default "$prompt"
+    else
+      gum confirm "$prompt"
+    fi
   else
     warn "refusing to continue without confirmation; re-run with --noconfirm"
     exit 1
@@ -191,22 +200,18 @@ step_desktop_apps() {
 
 # ---------------------------------------------------------------------------
 # 5. Enable Quickshell plugin: Active Window
+# ---------------------------------------------------------------------------
+step_active_window() {
+  info "5. Enable plugin: Active Window"
+  run omarchy plugin enable omarchy.active-window 2>/dev/null || skip "active-window already enabled"
+}
+
+# ---------------------------------------------------------------------------
 # 6. Disable Quickshell plugin: Omarchy menu
 # ---------------------------------------------------------------------------
-step_plugins() {
-  info "5. Enable plugin: Active Window"
-  if confirm "Enable the Active Window plugin?"; then
-    run omarchy plugin enable omarchy.active-window 2>/dev/null || skip "active-window already enabled"
-  else
-    skip "skipped"
-  fi
-
+step_menu() {
   info "6. Disable plugin: Omarchy menu"
-  if confirm "Disable the Omarchy menu plugin?"; then
-    run omarchy plugin disable omarchy.menu 2>/dev/null || skip "menu already disabled"
-  else
-    skip "skipped"
-  fi
+  disable_bar_widget omarchy.menu "Omarchy menu"
 }
 
 # ---------------------------------------------------------------------------
@@ -875,6 +880,33 @@ step_apply() {
 # ---------------------------------------------------------------------------
 # Manual steps
 # ---------------------------------------------------------------------------
+manual_open_browser() {
+  run omarchy launch browser || true
+}
+
+manual_github_key() {
+  if command -v wl-copy &>/dev/null && [[ -f "$HOME/.ssh/id_ed25519.pub" ]]; then
+    run wl-copy < "$HOME/.ssh/id_ed25519.pub"
+  fi
+  run xdg-open "https://github.com/settings/ssh/new" >/dev/null 2>&1 || true
+}
+
+manual_battery() {
+  run omarchy launch floating-terminal-with-presentation "sudo batctl" || true
+}
+
+MANUAL_FUNCS=(
+  manual_open_browser
+  manual_github_key
+  manual_battery
+)
+
+MANUAL_TITLES=(
+  "Open Chromium (apply policies, sign in, pin extensions)"
+  "Copy the SSH public key and open the GitHub keys page"
+  "Configure battery thresholds (batctl) in a floating terminal"
+)
+
 manual_steps() {
   printf '\n\033[1;38;5;75m=== Manual steps ===\033[0m\n'
   printf '  1. Open Chromium once so the policies apply (DuckDuckGo default, extensions,\n'
@@ -888,72 +920,40 @@ manual_steps() {
   printf '  4. Configure battery charge thresholds (40-80%%):\n'
   printf '         sudo batctl\n'
 
-  # In interactive mode, walk through the runnable steps one by one.
+  # In interactive mode, offer the runnable ones as a selectable list.
   if [[ "$ASSUME_YES" == true || "$DRY_RUN" == true || ! -t 0 ]]; then
     printf '\n'
     return 0
   fi
 
-  printf '\n\033[1;38;5;75m  Walk through the manual steps now?\033[0m\n'
+  # The one-time step confirmation does not cover the manual walkthrough.
+  STEP_CONFIRMED=false
+  local rc=0
+  choose_from_list "Manual steps you can run now" "manual steps" "${MANUAL_TITLES[@]}" || rc=$?
+  case "$rc" in
+    0) ;;
+    2) printf '\n'; return 0 ;;
+    *) info "Skipped"; printf '\n'; return 0 ;;
+  esac
 
-  if confirm "Open Chromium now?"; then
-    run omarchy launch browser || true
-  fi
-
-  if confirm "Copy the SSH public key to the clipboard and open the GitHub keys page?"; then
-    if command -v wl-copy &>/dev/null && [[ -f "$HOME/.ssh/id_ed25519.pub" ]]; then
-      run wl-copy < "$HOME/.ssh/id_ed25519.pub"
-    fi
-    run xdg-open "https://github.com/settings/ssh/new" >/dev/null 2>&1 || true
-  fi
-
-  if confirm "Configure battery thresholds (batctl) in a floating terminal?"; then
-    run omarchy launch floating-terminal-with-presentation "sudo batctl" || true
-  fi
+  local i
+  for i in "${SELECTED[@]}"; do
+    "${MANUAL_FUNCS[$((i - 1))]}"
+  done
 
   printf '\n'
 }
 
 # ---------------------------------------------------------------------------
-main() {
-  case "${1:-}" in
-    -h|--help)
-      cat << 'EOF'
-Usage: omarchy4-setup.sh [--noconfirm]
-
-  --noconfirm   Run unattended (answer yes to every prompt), like the original script.
-  -h, --help    Show this help.
-
-Environment:
-  DRY_RUN=true  Preview commands without executing them.
-EOF
-      exit 0
-      ;;
-    -y|--yes|--noconfirm)
-      ASSUME_YES=true
-      ;;
-    "")
-      ;;
-    *)
-      echo "Unknown option: $1 (try --help)" >&2
-      exit 1
-      ;;
-  esac
-
-  if [[ "$DRY_RUN" == true ]]; then
-    info "Omarchy 4 personal setup (DRY RUN — no changes will be made)"
-  elif [[ "$ASSUME_YES" == true ]]; then
-    info "Omarchy 4 personal setup starting (--noconfirm)"
-  else
-    info "Omarchy 4 personal setup starting (interactive — confirm each step)"
-  fi
-  [[ $EUID -eq 0 ]] && { echo "Do not run as root." >&2; exit 1; }
-
+# Step registry and list-based selection (pacman-style)
+# ---------------------------------------------------------------------------
+STEP_FUNCS=(
   step_remove_preinstalls
   step_chromium_policies
   step_web_apps
   step_desktop_apps
-  step_plugins
+  step_active_window
+  step_menu
   step_elsewhen
   step_agents
   step_superwhisper
@@ -978,8 +978,248 @@ EOF
   step_default_agent
   step_fzf
   step_bar_keyboard_layout
-  step_apply
+)
 
+STEP_TITLES=(
+  "Remove all preinstalled apps"
+  "Chromium policies (search, extensions, privacy)"
+  "Install web apps"
+  "Install desktop apps"
+  "Enable the Active Window plugin"
+  "Disable the Omarchy menu plugin"
+  "Remove the Elsewhen (world clock) plugin"
+  "Remove the Agents plugin"
+  "Remove Superwhisper"
+  "Monitor scaling 1x"
+  "Foot font size 14"
+  "Disable Hyprland animations"
+  "SUPER+Q to close window"
+  "Remove docker"
+  "SSH key + github.com config"
+  "Keyboard & touchpad"
+  "Disable the screensaver"
+  "SUPER+SHIFT+O: Obsidian"
+  "Nvim relative line numbers"
+  "Nvim indentation 4 spaces"
+  "Nvim LazyExtras: clangd + dap.core"
+  "Disable Nvim spell checking"
+  "Install batctl-tui-bin"
+  "Remove ~/Wallpapers and ~/Work/tries"
+  "Fingerprint setup"
+  "Gruvbox theme"
+  "Global Node.js version in mise"
+  "Default agent OpenCode"
+  "fzf search scope"
+  "Move the keyboard layout next to the clock"
+)
+
+print_titles() {
+  local -a titles=("$@")
+  local i
+  for i in "${!titles[@]}"; do
+    printf '  %2d) %s\n' "$((i + 1))" "${titles[$i]}"
+  done
+}
+
+print_step_list() {
+  print_titles "${STEP_TITLES[@]}"
+}
+
+# Turn a selection spec into the global SELECTED array (1-based item numbers).
+# Usage: parse_selection <spec> <count>
+#   ""            all items (pacman's default answer)
+#   all | none    everything or nothing
+#   1 3 5-8       only these items
+#   ^4 ^10-12     all items except these (prefix each token with ^ or -)
+#   1-10 ^4       include a range, then exclude from it
+parse_selection() {
+  local spec="${1//,/ }"
+  local n="$2"
+  local -a tokens=()
+  read -ra tokens <<< "$spec"
+
+  local i
+  if (( ${#tokens[@]} == 0 )); then
+    SELECTED=()
+    for (( i = 1; i <= n; i++ )); do SELECTED+=("$i"); done
+    return 0
+  fi
+  if (( ${#tokens[@]} == 1 )); then
+    case "${tokens[0],,}" in
+      all)
+        SELECTED=()
+        for (( i = 1; i <= n; i++ )); do SELECTED+=("$i"); done
+        return 0
+        ;;
+      none)
+        SELECTED=()
+        return 0
+        ;;
+    esac
+  fi
+
+  local -a include=() exclude=()
+  local have_include=false
+  local token mode start end
+  for token in "${tokens[@]}"; do
+    mode=include
+    case "$token" in
+      ^*|-*) mode=exclude; token="${token:1}" ;;
+    esac
+    if [[ ! "$token" =~ ^([0-9]+)(-([0-9]+))?$ ]]; then
+      warn "not a number: $token" >&2
+      return 1
+    fi
+    start=${BASH_REMATCH[1]}
+    end=${BASH_REMATCH[3]:-${BASH_REMATCH[1]}}
+    if (( start < 1 || end > n || start > end )); then
+      warn "out of range (1-$n): $token" >&2
+      return 1
+    fi
+    for (( i = start; i <= end; i++ )); do
+      if [[ "$mode" == include ]]; then
+        include+=("$i")
+        have_include=true
+      else
+        exclude+=("$i")
+      fi
+    done
+  done
+
+  local -A chosen=()
+  if [[ "$have_include" == true ]]; then
+    for i in "${include[@]}"; do chosen[$i]=1; done
+  else
+    for (( i = 1; i <= n; i++ )); do chosen[$i]=1; done
+  fi
+  for i in "${exclude[@]}"; do unset 'chosen[$i]'; done
+
+  SELECTED=()
+  for (( i = 1; i <= n; i++ )); do
+    [[ -n "${chosen[$i]:-}" ]] && SELECTED+=("$i")
+  done
+  return 0
+}
+
+# Show a numbered list, let the user include/exclude items, then confirm once.
+# Usage: choose_from_list <heading> <noun> <title...>
+choose_from_list() {
+  local heading="$1" noun="$2"
+  shift 2
+  local -a titles=("$@")
+  local n=${#titles[@]}
+
+  printf '\n\033[1;38;5;75m%s:\033[0m\n' "$heading"
+  print_titles "${titles[@]}"
+  printf '\n'
+  printf 'Run which %s? Enter = all. Numbers/ranges select, ^ or - excludes.\n' "$noun"
+  printf 'Examples: "1 3 5-8"   "^4 ^10-12"   "1-10 ^4"\n\n'
+
+  local spec=""
+  while true; do
+    if command -v gum &>/dev/null; then
+      spec=$(gum input --prompt 'Selection: ' --placeholder 'all | 1 3 5-8 | ^4 ^10-12') || return 1
+    else
+      printf 'Selection: '
+      read -r spec || return 1
+    fi
+    if parse_selection "$spec" "$n"; then
+      break
+    fi
+  done
+
+  if (( ${#SELECTED[@]} == 0 )); then
+    info "Nothing selected"
+    return 2
+  fi
+
+  printf '\n\033[1;38;5;75mSelected %d of %d %s:\033[0m\n' "${#SELECTED[@]}" "$n" "$noun"
+  local i
+  for i in "${SELECTED[@]}"; do
+    printf '  %2d) %s\n' "$i" "${titles[$((i - 1))]}"
+  done
+  printf '\n'
+
+  # Pacman-style: Enter accepts the selection.
+  confirm "Proceed?" true || return 1
+  return 0
+}
+
+choose_steps() {
+  choose_from_list "Steps" "steps" "${STEP_TITLES[@]}"
+}
+
+# ---------------------------------------------------------------------------
+main() {
+  case "${1:-}" in
+    -h|--help)
+      cat << 'EOF'
+Usage: omarchy4-setup.sh [--noconfirm] [--list]
+
+  (no args)     Show the numbered step list and choose what to run.
+  --noconfirm   Run every step unattended (no list, no prompts).
+  --list        Print the numbered step list and exit.
+  -h, --help    Show this help.
+
+Selection syntax (interactive prompt):
+  Enter or "all"    run every step
+  "none"            run nothing
+  "1 3 5-8"         run only these steps
+  "^4 ^10-12"       run everything except these steps
+  "1-10 ^4"         include a range, then exclude from it
+
+Environment:
+  DRY_RUN=true  Preview commands without executing them (runs all steps).
+EOF
+      exit 0
+      ;;
+    -y|--yes|--noconfirm)
+      ASSUME_YES=true
+      ;;
+    --list)
+      print_step_list
+      exit 0
+      ;;
+    "")
+      ;;
+    *)
+      echo "Unknown option: $1 (try --help)" >&2
+      exit 1
+      ;;
+  esac
+
+  if [[ "$DRY_RUN" == true ]]; then
+    info "Omarchy 4 personal setup (DRY RUN — no changes will be made)"
+  elif [[ "$ASSUME_YES" == true ]]; then
+    info "Omarchy 4 personal setup starting (--noconfirm)"
+  else
+    info "Omarchy 4 personal setup starting"
+  fi
+  [[ $EUID -eq 0 ]] && { echo "Do not run as root." >&2; exit 1; }
+
+  if [[ "$ASSUME_YES" == true || "$DRY_RUN" == true ]]; then
+    parse_selection "all" "${#STEP_FUNCS[@]}"
+    STEP_CONFIRMED=true
+  else
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      echo "refusing to choose steps without an interactive terminal; re-run with --noconfirm" >&2
+      exit 1
+    fi
+    local rc=0
+    choose_steps || rc=$?
+    case "$rc" in
+      0) STEP_CONFIRMED=true ;;
+      2) ok "Nothing to do"; return 0 ;;
+      *) info "Aborted"; return 0 ;;
+    esac
+  fi
+
+  local i
+  for i in "${SELECTED[@]}"; do
+    "${STEP_FUNCS[$((i - 1))]}"
+  done
+
+  step_apply
   ok "Setup complete"
   manual_steps
 }
