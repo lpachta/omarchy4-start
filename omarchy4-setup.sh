@@ -591,19 +591,89 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 18. Set theme to Gruvbox
+# 18. Nvim: wrap Typst prose at 60 columns and keep the view steady at EOL
+# ---------------------------------------------------------------------------
+step_nvim_typst() {
+  info "18. Nvim Typst formatter: wrap prose at 60 columns"
+  local nvim="$HOME/.config/nvim"
+  [[ -d "$nvim" ]] || { skip "nvim config missing: $nvim"; return 0; }
+  confirm "Wrap Typst prose at 60 columns in Neovim?" || { skip "skipped"; return 0; }
+
+  # Typst is formatted by tinymist (in "typstyle" mode), which by default keeps
+  # paragraphs on one long line. Lower the print width and enable prose
+  # wrapping so the lines fit a split window.
+  local typst="$nvim/lua/plugins/typst.lua"
+  if [[ -f "$typst" ]] && grep -q 'formatterPrintWidth = 60' "$typst"; then
+    skip "typst.lua already wraps at 60 columns"
+  else
+    [[ -f "$typst" ]] && run cp "$typst" "$typst.bak.$(date +%Y%m%d_%H%M%S)"
+    write_file "$typst" << 'EOF'
+-- Wrap prose when formatting Typst files.
+-- Typst is formatted by tinymist (in "typstyle" mode), which by default keeps
+-- paragraphs on one long line (print width 120, no wrapping). Lower the print
+-- width and enable prose wrapping so long lines get broken up.
+return {
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      servers = {
+        tinymist = {
+          settings = {
+            formatterMode = "typstyle",
+            formatterPrintWidth = 60,
+            -- "none" keeps original line breaks, "fill" wraps to fit the print
+            -- width, "sentence" puts each sentence on its own line.
+            formatterProseWrap = "fill",
+          },
+        },
+      },
+    },
+  },
+}
+EOF
+    ok "typst.lua updated"
+  fi
+
+  # LazyVim sets sidescrolloff=8 globally, which scrolls the view sideways when
+  # the cursor reaches the last character of a line wider than the window. Typst
+  # lines are wrapped to fit, so turn that off for Typst buffers only.
+  local autocmds="$nvim/lua/config/autocmds.lua"
+  if [[ ! -f "$autocmds" ]]; then
+    skip "nvim autocmds.lua missing: $autocmds"
+  elif grep -q 'pattern = "typst"' "$autocmds"; then
+    skip "typst sidescrolloff autocmd already present"
+  else
+    run cp "$autocmds" "$autocmds.bak.$(date +%Y%m%d_%H%M%S)"
+    append_file "$autocmds" << 'EOF'
+
+-- Typst: lines are wrapped by the formatter to fit a split window. Keep the
+-- cursor on the last character from scrolling the view sideways (LazyVim sets
+-- sidescrolloff=8 globally, which forces a horizontal jump at end of line).
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "typst",
+  callback = function()
+    vim.opt_local.sidescrolloff = 0
+  end,
+})
+EOF
+    ok "autocmds.lua updated"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# 19. Set theme to Gruvbox
 # ---------------------------------------------------------------------------
 step_theme() {
-  info "18. Set theme to Gruvbox"
+  info "19. Set theme to Gruvbox"
   confirm "Set the theme to Gruvbox?" || { skip "skipped"; return 0; }
   run omarchy theme set gruvbox
 }
 
 # ---------------------------------------------------------------------------
-# 19. Enable Quickshell plugin: Active Window
+# 20. Enable Quickshell plugin: Active Window
 # ---------------------------------------------------------------------------
 step_active_window() {
-  info "19. Enable plugin: Active Window"
+  info "20. Enable plugin: Active Window"
   run omarchy plugin enable omarchy.active-window 2>/dev/null || skip "active-window already enabled"
 }
 
@@ -649,37 +719,37 @@ disable_bar_widget() {
 }
 
 # ---------------------------------------------------------------------------
-# 20. Disable Quickshell plugin: Omarchy menu
+# 21. Disable Quickshell plugin: Omarchy menu
 # ---------------------------------------------------------------------------
 step_menu() {
-  info "20. Disable plugin: Omarchy menu"
+  info "21. Disable plugin: Omarchy menu"
   disable_bar_widget omarchy.menu "Omarchy menu"
 }
 
 # ---------------------------------------------------------------------------
-# 21. Remove Quickshell plugin: Elsewhen (world clock)
+# 22. Remove Quickshell plugin: Elsewhen (world clock)
 # ---------------------------------------------------------------------------
 step_elsewhen() {
-  info "21. Remove plugin: Elsewhen"
+  info "22. Remove plugin: Elsewhen"
   # Elsewhen is a first-party plugin, so it cannot be deleted; disabling it
   # removes it from the bar and persists that to ~/.config/omarchy/shell.json.
   disable_bar_widget omarchy.elsewhen "Elsewhen"
 }
 
 # ---------------------------------------------------------------------------
-# 22. Remove Quickshell plugin: Agents
+# 23. Remove Quickshell plugin: Agents
 # ---------------------------------------------------------------------------
 step_agents() {
-  info "22. Remove plugin: Agents"
+  info "23. Remove plugin: Agents"
   # Agents is a first-party bar widget, removed the same way as Elsewhen.
   disable_bar_widget omarchy.agents "Agents"
 }
 
 # ---------------------------------------------------------------------------
-# 23. Remove Superwhisper (package + its shell plugin)
+# 24. Remove Superwhisper (package + its shell plugin)
 # ---------------------------------------------------------------------------
 step_superwhisper() {
-  info "23. Remove Superwhisper"
+  info "24. Remove Superwhisper"
   local plugin="$HOME/.config/omarchy/plugins/superwhisper-panel"
   local installed=false
   pacman -Qi superwhisper-bin &>/dev/null && installed=true
@@ -706,10 +776,10 @@ step_superwhisper() {
 }
 
 # ---------------------------------------------------------------------------
-# 24. Move the keyboard layout widget next to the clock
+# 25. Move the keyboard layout widget next to the clock
 # ---------------------------------------------------------------------------
 step_bar_keyboard_layout() {
-  info "24. Move keyboard layout next to the clock"
+  info "25. Move keyboard layout next to the clock"
   local shell_json="$HOME/.config/omarchy/shell.json"
   [[ -f "$shell_json" ]] || { skip "shell.json missing: $shell_json"; return 0; }
 
@@ -725,19 +795,19 @@ step_bar_keyboard_layout() {
 }
 
 # ---------------------------------------------------------------------------
-# 25. Toggle screensaver to off
+# 26. Toggle screensaver to off
 # ---------------------------------------------------------------------------
 step_screensaver() {
-  info "25. Disable screensaver"
+  info "26. Disable screensaver"
   confirm "Disable the screensaver?" || { skip "skipped"; return 0; }
   run omarchy toggle screensaver off
 }
 
 # ---------------------------------------------------------------------------
-# 26. SSH key + config for GitHub
+# 27. SSH key + config for GitHub
 # ---------------------------------------------------------------------------
 step_ssh() {
-  info "26. SSH key (ed25519) + github.com config"
+  info "27. SSH key (ed25519) + github.com config"
   confirm "Generate the GitHub SSH key and configure ~/.ssh/config?" || { skip "skipped"; return 0; }
 
   mkdir -p "$HOME/.ssh"
@@ -779,10 +849,10 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# 27. Set up fingerprint authentication
+# 28. Set up fingerprint authentication
 # ---------------------------------------------------------------------------
 step_fingerprint() {
-  info "27. Fingerprint setup"
+  info "28. Fingerprint setup"
   if [[ "$ASSUME_YES" == true ]]; then
     # Enrollment needs the user to touch the sensor; leave it to the manual steps.
     skip "fingerprint enrollment needs interaction (see manual steps)"
@@ -800,10 +870,10 @@ step_fingerprint() {
 }
 
 # ---------------------------------------------------------------------------
-# 28. Set a global Node.js version in mise
+# 29. Set a global Node.js version in mise
 # ---------------------------------------------------------------------------
 step_mise_node() {
-  info "28. Set global Node.js version in mise"
+  info "29. Set global Node.js version in mise"
   if ! command -v mise &>/dev/null; then
     skip "mise not installed"
     return 0
@@ -823,19 +893,19 @@ step_mise_node() {
 }
 
 # ---------------------------------------------------------------------------
-# 29. Set default agent to OpenCode
+# 30. Set default agent to OpenCode
 # ---------------------------------------------------------------------------
 step_default_agent() {
-  info "29. Set default agent to OpenCode"
+  info "30. Set default agent to OpenCode"
   confirm "Set the default coding agent to OpenCode?" || { skip "skipped"; return 0; }
   run omarchy default agent opencode
 }
 
 # ---------------------------------------------------------------------------
-# 30. Configure fzf to skip hidden folders except .config
+# 31. Configure fzf to skip hidden folders except .config
 # ---------------------------------------------------------------------------
 step_fzf() {
-  info "30. Configure fzf search scope"
+  info "31. Configure fzf search scope"
   local rc="$HOME/.bashrc"
   local marker="# fzf: skip dotted folders (except .config)"
   [[ -f "$rc" ]] || { skip "$rc missing"; return 0; }
@@ -965,6 +1035,7 @@ STEP_FUNCS=(
   step_nvim_indent
   step_nvim_extras
   step_nvim_spell
+  step_nvim_typst
   step_theme
   step_active_window
   step_menu
@@ -998,6 +1069,7 @@ STEP_TITLES=(
   "Nvim indentation 4 spaces"
   "Nvim LazyExtras: clangd + dap.core"
   "Disable Nvim spell checking"
+  "Nvim Typst formatter: wrap at 60 columns"
   "Gruvbox theme"
   "Enable the Active Window plugin"
   "Disable the Omarchy menu plugin"
@@ -1015,7 +1087,7 @@ STEP_TITLES=(
 
 # Step sections for the numbered list: the 1-based number of the last step in
 # each section, and the heading shown above that section.
-STEP_SECTION_ENDS=(7 12 17 25 27 30)
+STEP_SECTION_ENDS=(7 12 18 26 28 31)
 STEP_SECTION_TITLES=(
   "System & apps"
   "Desktop & input"

@@ -68,34 +68,35 @@ terminal it refuses to choose steps unless `--noconfirm` is set.
 | 15 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
 | 16 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
 | 17 | Disable Neovim spell checking | `autocmds.lua` |
+| 18 | Nvim Typst formatter: wrap prose at 60 columns, no sideways jump at EOL | `typst.lua`, `autocmds.lua` |
 
 **Shell & bar**
 
 | # | Task | Method |
 |---|------|--------|
-| 18 | Gruvbox theme | `omarchy theme set` |
-| 19 | Enable Active Window plugin | `omarchy plugin enable` |
-| 20 | Disable Omarchy menu plugin | `omarchy plugin disable` |
-| 21 | Remove Elsewhen (world clock) plugin | `omarchy plugin disable` |
-| 22 | Remove Agents plugin | `omarchy plugin disable` |
-| 23 | Remove Superwhisper package + shell plugin | `omarchy plugin remove`, `omarchy pkg drop` |
-| 24 | Move keyboard layout next to the clock | `omarchy bar move` |
-| 25 | Screensaver off | `omarchy toggle screensaver off` |
+| 19 | Gruvbox theme | `omarchy theme set` |
+| 20 | Enable Active Window plugin | `omarchy plugin enable` |
+| 21 | Disable Omarchy menu plugin | `omarchy plugin disable` |
+| 22 | Remove Elsewhen (world clock) plugin | `omarchy plugin disable` |
+| 23 | Remove Agents plugin | `omarchy plugin disable` |
+| 24 | Remove Superwhisper package + shell plugin | `omarchy plugin remove`, `omarchy pkg drop` |
+| 25 | Move keyboard layout next to the clock | `omarchy bar move` |
+| 26 | Screensaver off | `omarchy toggle screensaver off` |
 
 **Security**
 
 | # | Task | Method |
 |---|------|--------|
-| 26 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
-| 27 | Fingerprint authentication | `omarchy setup security fingerprint` |
+| 27 | SSH key (ed25519) + route `github.com` to it only | `ssh-keygen` + `~/.ssh/config` |
+| 28 | Fingerprint authentication | `omarchy setup security fingerprint` |
 
 **Tools**
 
 | # | Task | Method |
 |---|------|--------|
-| 28 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
-| 29 | Default agent OpenCode | `omarchy default agent` |
-| 30 | fzf skips hidden folders except `.config` | `~/.bashrc` |
+| 29 | Global Node.js version in mise (fixes the `node` shim) | `mise use -g --pin node` |
+| 30 | Default agent OpenCode | `omarchy default agent` |
+| 31 | fzf skips hidden folders except `.config` | `~/.bashrc` |
 
 The browser extensions force-installed via policy are: Proton Pass, uBlock
 Origin Lite, SponsorBlock, Unhook, Vimium, and Dark Reader.
