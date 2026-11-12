@@ -594,17 +594,17 @@ EOF
 # 18. Nvim: wrap Typst prose at 60 columns and keep the view steady at EOL
 # ---------------------------------------------------------------------------
 step_nvim_typst() {
-  info "18. Nvim Typst formatter: wrap prose at 60 columns"
+  info "18. Nvim Typst formatter: wrap prose at 60 columns, 4-space indent"
   local nvim="$HOME/.config/nvim"
   [[ -d "$nvim" ]] || { skip "nvim config missing: $nvim"; return 0; }
-  confirm "Wrap Typst prose at 60 columns in Neovim?" || { skip "skipped"; return 0; }
+  confirm "Wrap Typst prose at 60 columns with 4-space indent in Neovim?" || { skip "skipped"; return 0; }
 
   # Typst is formatted by tinymist (in "typstyle" mode), which by default keeps
-  # paragraphs on one long line. Lower the print width and enable prose
-  # wrapping so the lines fit a split window.
+  # paragraphs on one long line and indents with 2 spaces. Lower the print
+  # width, enable prose wrapping and match the 4-space indent used elsewhere.
   local typst="$nvim/lua/plugins/typst.lua"
-  if [[ -f "$typst" ]] && grep -q 'formatterPrintWidth = 60' "$typst"; then
-    skip "typst.lua already wraps at 60 columns"
+  if [[ -f "$typst" ]] && grep -q 'formatterIndentSize = 4' "$typst"; then
+    skip "typst.lua already wraps at 60 columns with 4-space indent"
   else
     [[ -f "$typst" ]] && run cp "$typst" "$typst.bak.$(date +%Y%m%d_%H%M%S)"
     write_file "$typst" << 'EOF'
@@ -621,6 +621,9 @@ return {
           settings = {
             formatterMode = "typstyle",
             formatterPrintWidth = 60,
+            -- Tinymist/typstyle default to 2 spaces; match the 4-space indent
+            -- used by the rest of the config.
+            formatterIndentSize = 4,
             -- "none" keeps original line breaks, "fill" wraps to fit the print
             -- width, "sentence" puts each sentence on its own line.
             formatterProseWrap = "fill",
@@ -1069,7 +1072,7 @@ STEP_TITLES=(
   "Nvim indentation 4 spaces"
   "Nvim LazyExtras: clangd + dap.core"
   "Disable Nvim spell checking"
-  "Nvim Typst formatter: wrap at 60 columns"
+  "Nvim Typst formatter: wrap at 60 columns, 4-space indent"
   "Gruvbox theme"
   "Enable the Active Window plugin"
   "Disable the Omarchy menu plugin"

@@ -68,7 +68,7 @@ terminal it refuses to choose steps unless `--noconfirm` is set.
 | 15 | Nvim indentation 4 spaces (editor + formatters) | `options.lua`, `formatting.lua`, `stylua.toml`, `.editorconfig`, `.clang-format` |
 | 16 | Install LazyExtras: clangd + dap.core | `lazyvim.json` |
 | 17 | Disable Neovim spell checking | `autocmds.lua` |
-| 18 | Nvim Typst formatter: wrap prose at 60 columns, no sideways jump at EOL | `typst.lua`, `autocmds.lua` |
+| 18 | Nvim Typst formatter: wrap prose at 60 columns, 4-space indent, no sideways jump at EOL | `typst.lua`, `autocmds.lua` |
 
 **Shell & bar**
 
